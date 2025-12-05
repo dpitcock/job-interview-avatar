@@ -1,0 +1,27 @@
+version: '3.8'
+
+services:
+  # Next.js Application
+  app:
+    build: .
+    ports:
+      - "3001:3001"
+    environment:
+      - INTERVIEW_MODE=${INTERVIEW_MODE:-LOCAL}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - ELEVENLABS_API_KEY=${ELEVENLABS_API_KEY}
+      - HEYGEN_API_KEY=${HEYGEN_API_KEY}
+      # Connect to host machine's Ollama instance
+      # host.docker.internal resolves to the host machine from inside the container
+      - OLLAMA_BASE_URL=http://host.docker.internal:11434
+      - OLLAMA_MODEL=${OLLAMA_MODEL:-deepseek-r1:latest}
+    # Allow container to access host network (optional, but host.docker.internal is cleaner)
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - interview-network
+
+networks:
+  interview-network:
+    driver: bridge
