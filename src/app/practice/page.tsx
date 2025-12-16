@@ -53,8 +53,34 @@ export default function PracticePage() {
     const [autoSpeak, setAutoSpeak] = useState(false);
     const [isSynthesizing, setIsSynthesizing] = useState(false);
 
+    const [availableModels, setAvailableModels] = useState<string[]>([]);
+    const [defaultModel, setDefaultModel] = useState<string>('deepseek-r1:latest');
+
     const { response, isStreaming, error, stream, stop, reset } = useStreaming();
     const { playAudio, stop: stopAudio, isPlaying, isLoading: isAudioLoading } = useAudioPlayer();
+
+    // Fetch available models
+    useEffect(() => {
+        async function fetchModels() {
+            try {
+                const res = await fetch('/api/llm/models');
+                if (res.ok) {
+                    const data = await res.json();
+                    setAvailableModels(data.models || []);
+                    if (data.defaultModel) {
+                        setDefaultModel(data.defaultModel);
+                        // If no settings in local storage, use default
+                        if (!localStorage.getItem('interviewAvatar.settings')) {
+                            setSettings(prev => ({ ...prev, model: data.defaultModel }));
+                        }
+                    }
+                }
+            } catch (err) {
+                console.error('Failed to fetch models:', err);
+            }
+        }
+        fetchModels();
+    }, []);
 
     // Load settings from localStorage
     useEffect(() => {
@@ -68,6 +94,13 @@ export default function PracticePage() {
             }
         }
     }, []);
+
+    // Save settings to localStorage
+    useEffect(() => {
+        if (settings.model) {
+            localStorage.setItem('interviewAvatar.settings', JSON.stringify({ llm: settings }));
+        }
+    }, [settings]);
 
     const filteredQuestions = selectedCategory === 'all'
         ? PRACTICE_QUESTIONS
@@ -122,7 +155,7 @@ export default function PracticePage() {
             [{ role: 'user', content: currentQuestion.question }],
             {
                 provider: settings.provider,
-                model: settings.model,
+                model: settings.model, // This will use the selected model
                 useRag: true,
             }
         );
@@ -183,7 +216,26 @@ export default function PracticePage() {
                             <span className="text-muted">
                                 {settings.provider === 'ollama' ? '🏠' : settings.provider === 'openai' ? '🟢' : '🟠'}
                             </span>
-                            <span className="font-medium">{settings.model.split(':')[0]}</span>
+
+                            {settings.provider === 'ollama' ? (
+                                <select
+                                    value={settings.model}
+                                    onChange={(e) => setSettings({ ...settings, model: e.target.value })}
+                                    className="bg-transparent border-none focus:ring-0 text-foreground font-medium p-0 pr-6 cursor-pointer"
+                                >
+                                    <option value={defaultModel}>Default ({defaultModel.split(':')[0]})</option>
+                                    {availableModels
+                                        .filter(m => m !== defaultModel)
+                                        .map(model => (
+                                            <option key={model} value={model}>
+                                                {model.split(':')[0]}
+                                            </option>
+                                        ))
+                                    }
+                                </select>
+                            ) : (
+                                <span className="font-medium">{settings.model.split(':')[0]}</span>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -206,8 +258,8 @@ export default function PracticePage() {
                         {/* Question Card */}
                         <div className="glass rounded-2xl p-8 mb-6">
                             <span className={`inline-block px-3 py-1 rounded-full text-xs font-medium mb-4 ${currentQuestion.category === 'behavioral' ? 'bg-primary/20 text-primary' :
-                                    currentQuestion.category === 'technical' ? 'bg-success/20 text-success' :
-                                        'bg-warning/20 text-warning'
+                                currentQuestion.category === 'technical' ? 'bg-success/20 text-success' :
+                                    'bg-warning/20 text-warning'
                                 }`}>
                                 {currentQuestion.category}
                             </span>
@@ -324,8 +376,8 @@ export default function PracticePage() {
                                     key={cat}
                                     onClick={() => setSelectedCategory(cat)}
                                     className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all ${selectedCategory === cat
-                                            ? 'bg-primary text-white'
-                                            : 'bg-card hover:bg-card-hover'
+                                        ? 'bg-primary text-white'
+                                        : 'bg-card hover:bg-card-hover'
                                         }`}
                                 >
                                     {cat === 'all' ? 'All' : cat.charAt(0).toUpperCase() + cat.slice(1)}
@@ -343,8 +395,8 @@ export default function PracticePage() {
                                     className="glass rounded-xl p-6 text-left card-interactive"
                                 >
                                     <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium mb-3 ${q.category === 'behavioral' ? 'bg-primary/20 text-primary' :
-                                            q.category === 'technical' ? 'bg-success/20 text-success' :
-                                                'bg-warning/20 text-warning'
+                                        q.category === 'technical' ? 'bg-success/20 text-success' :
+                                            'bg-warning/20 text-warning'
                                         }`}>
                                         {q.category}
                                     </span>
