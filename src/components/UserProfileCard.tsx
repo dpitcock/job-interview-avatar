@@ -20,6 +20,14 @@ export function UserProfileCard({
     onDelete,
 }: Omit<UserProfileCardProps, 'onUpdate'>) {
     const [isDeleting, setIsDeleting] = useState(false);
+    const [copied, setCopied] = useState(false);
+
+    const handleShare = () => {
+        const url = `${window.location.origin}?userId=${user.id}`;
+        navigator.clipboard.writeText(url);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+    };
 
     return (
         <div
@@ -108,13 +116,37 @@ export function UserProfileCard({
                     {!isActive ? (
                         <button
                             onClick={onSelect}
-                            className="flex-1 px-3 py-2 rounded-lg text-sm bg-primary text-white hover:bg-primary/80 transition-colors"
+                            className="flex-1 px-3 py-2 rounded-lg text-sm bg-primary text-white hover:bg-primary/80 transition-all font-medium"
                         >
                             Select
                         </button>
                     ) : (
                         <div className="flex-1" />
                     )}
+                    <button
+                        onClick={handleShare}
+                        className={`px-3 py-2 rounded-lg text-sm transition-all flex items-center justify-center gap-1.5 min-w-[80px] ${copied
+                            ? 'bg-success/20 text-success border border-success/30'
+                            : 'bg-card hover:bg-border border border-transparent'
+                            }`}
+                        title="Copy direct link to this profile"
+                    >
+                        {copied ? (
+                            <>
+                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                </svg>
+                                <span>Copied!</span>
+                            </>
+                        ) : (
+                            <>
+                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+                                </svg>
+                                <span>Share</span>
+                            </>
+                        )}
+                    </button>
                     <Link
                         href={`/users/${user.id}/edit`}
                         className="px-4 py-2 rounded-lg text-sm bg-card hover:bg-border transition-colors flex items-center justify-center"
@@ -124,6 +156,7 @@ export function UserProfileCard({
                     <button
                         onClick={() => setIsDeleting(true)}
                         className="px-3 py-2 rounded-lg text-sm text-error hover:bg-error/10 transition-colors"
+                        title="Delete profile"
                     >
                         🗑
                     </button>

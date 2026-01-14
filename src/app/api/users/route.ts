@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { v4 as uuidv4 } from 'uuid';
+import { generateShortId, slugify } from '@/lib/id';
 import db, { UserDbRecord } from '@/lib/db';
 import { UserProfile } from '@/types/user';
 
@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
         const body = await request.json();
         const { name, email, phone, avatar, voice, llm } = body;
 
-        const id = uuidv4();
+        const id = slugify(name) + '-' + generateShortId(4);
         const now = new Date().toISOString();
 
         db.prepare(`

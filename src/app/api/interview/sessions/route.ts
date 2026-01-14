@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import db from '@/lib/db';
-import { v4 as uuidv4 } from 'uuid';
+import { generateShortId } from '@/lib/id';
 
 export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'User ID is required' }, { status: 400 });
         }
 
-        const sessionId = uuidv4();
+        const sessionId = generateShortId(8);
 
         db.prepare(
             'INSERT INTO interview_sessions (id, user_id, title) VALUES (?, ?, ?)'

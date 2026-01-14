@@ -30,7 +30,9 @@
 
 Samuel prefers to delay numerical discussion until late-stage alignment, focusing first on **mutual value fit**.
 
-- Anything under 200k is not even worth considering. Realistically looking in the 330k range.
+- Anything under 240k is not even worth considering. 
+
+- Realistically looking, starting in the 300k range and considering total compensation.
 
 - Kows the market rate for senior engineers in the area. Uses peer/network converstion and https://levels.fyi/ to get a sense of the market. 
 

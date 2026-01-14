@@ -1,7 +1,7 @@
 const Database = require('better-sqlite3');
 const path = require('path');
 const fs = require('fs');
-const { v4: uuidv4 } = require('uuid');
+// const { v4: uuidv4 } = require('uuid');
 
 const DB_PATH = path.join(__dirname, '..', 'data', 'interview.db');
 
@@ -44,7 +44,7 @@ function addSamuelYoon() {
     // Prevent duplicates by deleting existing demo user with the same name
     db.prepare('DELETE FROM users WHERE name = ? AND is_demo = 1').run('Samuel Yoon');
 
-    const id = '052019ac-5c0d-4f53-8a7f-bd45e8833798'; // Use fixed ID for demo user
+    const id = 'samuel-yoon'; // Use readable ID for demo user
     const now = new Date().toISOString();
 
     const user = {
