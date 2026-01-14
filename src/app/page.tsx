@@ -232,7 +232,7 @@ export default function Dashboard() {
 
         {/* Main Actions */}
         {activeUser && (
-          <section className="grid md:grid-cols-2 gap-6 mb-12">
+          <section className="grid md:grid-cols-3 gap-6 mb-12">
             {/* Start Interview */}
             <div className="glass rounded-2xl p-8 card-interactive">
               <div className="flex items-start justify-between mb-6">
@@ -282,15 +282,15 @@ export default function Dashboard() {
               <div className="grid grid-cols-3 gap-3 mb-6 text-center text-sm">
                 <div className="p-3 rounded-xl bg-card">
                   <div className="text-xl font-bold">25</div>
-                  <div className="text-muted">Behavioral</div>
+                  <div className="text-muted">Beh.</div>
                 </div>
                 <div className="p-3 rounded-xl bg-card">
                   <div className="text-xl font-bold">15</div>
-                  <div className="text-muted">Technical</div>
+                  <div className="text-muted">Tech.</div>
                 </div>
                 <div className="p-3 rounded-xl bg-card">
                   <div className="text-xl font-bold">10</div>
-                  <div className="text-muted">Situational</div>
+                  <div className="text-muted">Sit.</div>
                 </div>
               </div>
 
@@ -299,6 +299,37 @@ export default function Dashboard() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.5 12c0-1.232.046-2.453.138-3.662a4.006 4.006 0 013.7-3.7 48.678 48.678 0 017.324 0 4.006 4.006 0 013.7 3.7c.017.22.032.441.046.662M4.5 12l-3-3m3 3l-3 3M4.5 12h15" />
                 </svg>
                 Start Practice
+              </Link>
+            </div>
+
+            {/* Interview Candidate (Role Reversal) */}
+            <div className="glass rounded-2xl p-8 card-interactive">
+              <div className="flex items-start justify-between mb-6">
+                <div>
+                  <h3 className="text-2xl font-bold mb-2">Interview Candidate</h3>
+                  <p className="text-muted">
+                    Role reversal: YOU are the interviewer. Test your avatar's knowledge.
+                  </p>
+                </div>
+                <div className="w-16 h-16 rounded-2xl bg-warning/20 flex items-center justify-center text-3xl">
+                  🎙️
+                </div>
+              </div>
+
+              <div className="p-4 rounded-xl bg-card mb-6 text-xs text-muted">
+                <p>Perfect for:</p>
+                <ul className="list-disc list-inside mt-2 space-y-1">
+                  <li>Reviewing your candidate's persona</li>
+                  <li>Testing RAG context accuracy</li>
+                  <li>Saving transcripts back to context</li>
+                </ul>
+              </div>
+
+              <Link href="/interview/candidate" className="btn btn-secondary w-full border-warning/30 hover:bg-warning/10">
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                </svg>
+                Interview Candidate
               </Link>
             </div>
           </section>

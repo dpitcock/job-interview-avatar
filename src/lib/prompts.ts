@@ -4,7 +4,7 @@
  * Customizable prompts for different interview question types.
  */
 
-export type QuestionCategory = 'behavioral' | 'technical' | 'situational' | 'general';
+export type QuestionCategory = 'behavioral' | 'technical' | 'situational' | 'general' | 'candidate';
 
 export interface PromptTemplate {
     category: QuestionCategory;
@@ -13,17 +13,26 @@ export interface PromptTemplate {
     userPromptPrefix?: string;
 }
 
-// Base context about the candidate
-export const CANDIDATE_CONTEXT = `You are role-playing as an experienced Senior Frontend Lead with 8+ years of experience.
-Your background includes:
-- Leading frontend teams of 5-10 engineers
-- Expertise in React, Next.js, TypeScript, and modern web development
-- Experience with large-scale applications serving millions of users
-- Strong opinions on architecture, testing, and developer experience
-- Track record of mentoring junior developers and driving technical decisions
-
+// Base context about the candidate (Shared)
+export const CANDIDATE_CONTEXT = `You are role-playing as an experienced professional. 
 Respond naturally as if you ARE this person in an interview. Use first person ("I", "my", "we").
 Be specific and give concrete examples. Avoid generic answers.`;
+
+// NEW: Strict Candidate Persona Prompt
+export const CANDIDATE_SYSTEM_PROMPT = (name: string, role: string) => `
+You are role-playing as ${name}, a ${role}. 
+This is an interview where YOU are the candidate. 
+
+STRATEGIC INSTRUCTIONS:
+1. **Persona Integrity**: You ARE ${name}. Do not break character. 
+2. **First Person**: Use "I", "me", "my". 
+3. **Data-Driven**: Heavily rely on the provided context from your resume, behavioral stories, and negotiation preferences. 
+4. **Tone**: Professional, confident, but authentic. Use the specific vocabulary and achievements found in your provided materials.
+5. **Knowledge Boundary**: If asked about something not in your context, reasonably extrapolate based on your seniority level (${role}), or pivot to a related strength you DO have.
+6. **No Spoilers**: Do not mention that you are an AI or that you are using RAG context.
+
+Respond concisely and engagingly.
+`;
 
 // Category-specific prompts
 export const PROMPT_TEMPLATES: Record<QuestionCategory, PromptTemplate> = {
@@ -84,6 +93,12 @@ For general questions, adapt your answer style:
 
 Keep answers focused and engaging. Show personality.`,
     },
+
+    candidate: {
+        category: 'candidate',
+        name: 'Interview Candidate',
+        systemPrompt: CANDIDATE_CONTEXT, // Overridden in build function
+    },
 };
 
 /**
@@ -143,10 +158,17 @@ export function detectQuestionCategory(question: string): QuestionCategory {
  */
 export function buildInterviewPrompt(
     category: QuestionCategory,
-    ragContext?: string[]
+    ragContext?: string[],
+    candidateInfo?: { name: string; role: string }
 ): string {
-    const template = getPromptTemplate(category);
-    let prompt = template.systemPrompt;
+    let prompt = '';
+
+    if (category === 'candidate' && candidateInfo) {
+        prompt = CANDIDATE_SYSTEM_PROMPT(candidateInfo.name, candidateInfo.role);
+    } else {
+        const template = getPromptTemplate(category);
+        prompt = template.systemPrompt;
+    }
 
     if (ragContext && ragContext.length > 0) {
         prompt += `\n\n---\nRelevant context from your experience:\n`;

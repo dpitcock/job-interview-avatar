@@ -95,6 +95,24 @@ if (IS_VERCEL) {
                 created_at TEXT DEFAULT (datetime('now')),
                 FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
             );
+
+            CREATE TABLE IF NOT EXISTS interview_sessions (
+                id TEXT PRIMARY KEY,
+                user_id TEXT NOT NULL,
+                title TEXT,
+                status TEXT DEFAULT 'active',
+                created_at TEXT DEFAULT (datetime('now')),
+                FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
+            );
+
+            CREATE TABLE IF NOT EXISTS interview_messages (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                session_id TEXT NOT NULL,
+                role TEXT NOT NULL,
+                content TEXT NOT NULL,
+                created_at TEXT DEFAULT (datetime('now')),
+                FOREIGN KEY (session_id) REFERENCES interview_sessions (id) ON DELETE CASCADE
+            );
         `);
     } catch (e) {
         console.error('Failed to initialize SQLite, falling back to mock:', e);

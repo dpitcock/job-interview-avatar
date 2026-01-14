@@ -26,6 +26,12 @@ The system supports multiple user profiles, each isolated with its own configura
     -   Deleting a user profile automatically performs a cascade delete, removing all associated RAG file metadata.
     -   The vector store is updated to ensure only documents belonging to the active user are used during the interview.
 
+### 🔗 Deep Linking & Direct Links
+The application supports automatic user selection via URL parameters. This is useful for creating bookmarks or direct links to specific personas:
+- **Parameter**: Append `?userId=[UUID]` to any page URL.
+- **Persistence**: Loading a URL with this parameter will automatically set the active user for the entire application and save it to your local preferences.
+- **Demo Example**: `http://localhost:3000?userId=607ac96e-9333-40e8-9653-5d51846b0a8d` (links directly to Samuel Yoon in the local environment).
+
 ### 🌐 Vercel Demo Mode
 When deployed on Vercel or in demo environments, the application operates in a **read-only mock mode**:
 -   **Static Fallback**: User profiles are loaded from a static `src/data/users-fallback.json` file.

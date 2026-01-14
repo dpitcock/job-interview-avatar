@@ -71,7 +71,6 @@ export default function PracticePage() {
                     setAvailableModels(data.models || []);
                     if (data.defaultModel) {
                         setDefaultModel(data.defaultModel);
-                        // If no settings in local storage, use default
                         if (!localStorage.getItem('interviewAvatar.settings')) {
                             setSettings(prev => ({ ...prev, model: data.defaultModel }));
                         }
@@ -150,24 +149,49 @@ export default function PracticePage() {
 
         stopAudio();
 
-        // Detect category for prompt selection
-        const category = detectQuestionCategory(currentQuestion.question);
-
         await stream(
             [{ role: 'user', content: currentQuestion.question }],
             {
                 provider: settings.provider,
-                model: settings.model, // This will use the selected model
+                model: settings.model,
                 useRag: true,
                 userId: activeUserId || undefined,
             }
         );
     };
 
+    const saveToContext = async () => {
+        if (!response || !currentQuestion || !activeUserId) return;
+
+        try {
+            const res = await fetch('/api/rag', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    userId: activeUserId,
+                    content: `Q: ${currentQuestion.question}\nA: ${response}`,
+                    metadata: {
+                        type: currentQuestion.category,
+                        title: `Practice Answer: ${currentQuestion.question.slice(0, 50)}...`,
+                    },
+                    source: `practice_${Date.now()}.md`
+                }),
+            });
+
+            if (res.ok) {
+                alert('Answer added to your professional context!');
+            } else {
+                throw new Error('Failed to save to context');
+            }
+        } catch (err) {
+            console.error('Error saving to context:', err);
+            alert('Failed to save to context.');
+        }
+    };
+
     // Auto-speak when streaming finishes
     useEffect(() => {
         if (autoSpeak && response && !isStreaming && !error) {
-            // Small delay to ensure state is settled
             const timer = setTimeout(() => {
                 speakResponse(response);
             }, 500);
@@ -201,7 +225,6 @@ export default function PracticePage() {
                     </div>
 
                     <div className="flex items-center gap-4">
-                        {/* Auto-speak Toggle */}
                         <button
                             onClick={() => setAutoSpeak(!autoSpeak)}
                             className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-sm transition-colors ${autoSpeak ? 'bg-primary/20 text-primary' : 'bg-card text-muted hover:text-foreground'
@@ -213,7 +236,6 @@ export default function PracticePage() {
                             {autoSpeak ? 'Auto-Speak On' : 'Auto-Speak Off'}
                         </button>
 
-                        {/* Current LLM indicator */}
                         <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-card text-sm">
                             <span className="w-2 h-2 rounded-full bg-success animate-pulse" />
                             <span className="text-muted">
@@ -246,7 +268,6 @@ export default function PracticePage() {
 
             <main className="max-w-6xl mx-auto px-6 py-8">
                 {isAnswering && currentQuestion ? (
-                    /* Active Question View */
                     <div className="max-w-3xl mx-auto">
                         <button
                             onClick={goBack}
@@ -258,7 +279,6 @@ export default function PracticePage() {
                             Back to questions
                         </button>
 
-                        {/* Question Card */}
                         <div className="glass rounded-2xl p-8 mb-6">
                             <span className={`inline-block px-3 py-1 rounded-full text-xs font-medium mb-4 ${currentQuestion.category === 'behavioral' ? 'bg-primary/20 text-primary' :
                                 currentQuestion.category === 'technical' ? 'bg-success/20 text-success' :
@@ -299,7 +319,6 @@ export default function PracticePage() {
                                             Regenerate
                                         </button>
 
-                                        {/* Speak Button */}
                                         <button
                                             onClick={() => isPlaying ? stopAudio() : speakResponse(response)}
                                             disabled={isSynthesizing || isAudioLoading}
@@ -308,7 +327,7 @@ export default function PracticePage() {
                                             {isSynthesizing || isAudioLoading ? (
                                                 <>
                                                     <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                                                    Loading Audio...
+                                                    Loading...
                                                 </>
                                             ) : isPlaying ? (
                                                 <>
@@ -316,23 +335,32 @@ export default function PracticePage() {
                                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 10a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z" />
                                                     </svg>
-                                                    Stop Speaking
+                                                    Stop
                                                 </>
                                             ) : (
                                                 <>
                                                     <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19.114 5.636a9 9 0 010 12.728M16.463 8.288a5.25 5.25 0 010 7.424M6.75 8.25l4.72-4.72a.75.75 0 011.28.53v15.88a.75.75 0 01-1.28.53l-4.72-4.72H4.51c-.88 0-1.704-.507-1.938-1.354A9.01 9.01 0 012.25 12c0-.83.112-1.633.322-2.396C2.806 8.756 3.63 8.25 4.51 8.25H6.75z" />
                                                     </svg>
-                                                    Speak Response
+                                                    Speak
                                                 </>
                                             )}
+                                        </button>
+
+                                        <button
+                                            onClick={saveToContext}
+                                            className="btn btn-secondary border-success/30 hover:bg-success/10"
+                                        >
+                                            <svg className="w-5 h-5 text-success" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                            </svg>
+                                            Add to Context
                                         </button>
                                     </>
                                 )}
                             </div>
                         </div>
 
-                        {/* Response */}
                         {(response || isStreaming || error) && (
                             <div className="glass rounded-2xl p-8">
                                 <h3 className="font-semibold mb-4 flex items-center gap-2">
@@ -341,11 +369,6 @@ export default function PracticePage() {
                                             <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
                                             Generating...
                                         </>
-                                    ) : error ? (
-                                        <>
-                                            <span className="w-2 h-2 rounded-full bg-error" />
-                                            Error
-                                        </>
                                     ) : (
                                         <>
                                             <span className="w-2 h-2 rounded-full bg-success" />
@@ -353,26 +376,17 @@ export default function PracticePage() {
                                         </>
                                     )}
                                 </h3>
-
-                                {error ? (
-                                    <div className="p-4 rounded-xl bg-error/20 text-error text-sm">
-                                        {error}
-                                    </div>
-                                ) : (
-                                    <div className="prose prose-invert max-w-none">
-                                        <p className="text-foreground/90 whitespace-pre-wrap leading-relaxed">
-                                            {response}
-                                            {isStreaming && <span className="inline-block w-2 h-5 bg-primary animate-pulse ml-1" />}
-                                        </p>
-                                    </div>
-                                )}
+                                <div className="prose prose-invert max-w-none">
+                                    <p className="text-foreground/90 whitespace-pre-wrap leading-relaxed">
+                                        {response}
+                                        {isStreaming && <span className="inline-block w-2 h-5 bg-primary animate-pulse ml-1" />}
+                                    </p>
+                                </div>
                             </div>
                         )}
                     </div>
                 ) : (
-                    /* Question List View */
                     <>
-                        {/* Category Filter */}
                         <div className="flex gap-2 mb-8 overflow-x-auto pb-2">
                             {(['all', 'behavioral', 'technical', 'situational'] as Category[]).map((cat) => (
                                 <button
@@ -389,7 +403,6 @@ export default function PracticePage() {
                             ))}
                         </div>
 
-                        {/* Questions Grid */}
                         <div className="grid md:grid-cols-2 gap-4">
                             {filteredQuestions.map((q) => (
                                 <button

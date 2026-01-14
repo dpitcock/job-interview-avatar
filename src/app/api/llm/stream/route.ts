@@ -10,12 +10,14 @@ interface StreamRequest {
     provider?: string;
     model?: string;
     userId?: string;
+    category?: string; // Optional override
+    candidateInfo?: { name: string; role: string };
 }
 
 export async function POST(request: NextRequest) {
     try {
         const body: StreamRequest = await request.json();
-        const { messages, useRag = true, provider, model, userId } = body;
+        const { messages, useRag = true, provider, model, userId, category: categoryOverride, candidateInfo } = body;
 
         if (!messages || !Array.isArray(messages)) {
             return new Response(JSON.stringify({ error: 'Messages are required' }), {
@@ -60,10 +62,11 @@ export async function POST(request: NextRequest) {
         }
 
         // Detect category and build enhanced system prompt
-        const category = lastUserMessage ? detectQuestionCategory(lastUserMessage.content) : 'general';
+        const category = categoryOverride || (lastUserMessage ? detectQuestionCategory(lastUserMessage.content) : 'general');
         const systemPrompt = buildInterviewPrompt(
-            category,
-            context?.documents.map(d => d.content)
+            category as any,
+            context?.documents.map(d => d.content),
+            candidateInfo
         );
 
         // Create streaming response

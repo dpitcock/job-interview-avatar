@@ -25,9 +25,19 @@ export function useUserProfiles() {
 
     useEffect(() => {
         fetchUsers();
-        // Load active user ID from localStorage (client-side only preference)
-        const stored = localStorage.getItem('active-user-id');
-        if (stored) setActiveUserId(stored);
+
+        // Handle URL parameter precedence: ?userId=xxx
+        const params = new URLSearchParams(window.location.search);
+        const urlUserId = params.get('userId');
+
+        if (urlUserId) {
+            setActiveUserId(urlUserId);
+            localStorage.setItem('active-user-id', urlUserId);
+        } else {
+            // Fallback to localStorage
+            const stored = localStorage.getItem('active-user-id');
+            if (stored) setActiveUserId(stored);
+        }
     }, [fetchUsers]);
 
     const activeUser = users.find(u => u.id === activeUserId) || null;
