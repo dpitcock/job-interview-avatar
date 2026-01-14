@@ -1,7 +1,7 @@
 import type { RAGDocument } from '@/types';
 
 /**
- * Enhanced RAG Pipeline with improved matching
+ * Enhanced RAG Pipeline with improved matching and user isolation
  */
 
 interface DocumentMetadata {
@@ -19,8 +19,22 @@ interface StoredDocument {
     tokens: string[]; // Tokenized for better matching
 }
 
-// In-memory store
-const documentStore: Map<string, StoredDocument> = new Map();
+// Default user ID for backward compatibility
+const DEFAULT_USER_ID = '__global__';
+
+// In-memory store: Map<userId, Map<docId, StoredDocument>>
+const userDocumentStores: Map<string, Map<string, StoredDocument>> = new Map();
+
+/**
+ * Get or create document store for a user
+ */
+function getUserStore(userId?: string): Map<string, StoredDocument> {
+    const uid = userId || DEFAULT_USER_ID;
+    if (!userDocumentStores.has(uid)) {
+        userDocumentStores.set(uid, new Map());
+    }
+    return userDocumentStores.get(uid)!;
+}
 
 // Common stop words to ignore
 const STOP_WORDS = new Set([
@@ -85,15 +99,17 @@ function calculateScore(queryTokens: string[], doc: StoredDocument): number {
 }
 
 /**
- * Add a document to the store
+ * Add a document to the store for a specific user
  */
 export async function addDocument(
     content: string,
-    metadata: DocumentMetadata
+    metadata: DocumentMetadata,
+    userId?: string
 ): Promise<string> {
     const id = `doc_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+    const store = getUserStore(userId);
 
-    documentStore.set(id, {
+    store.set(id, {
         id,
         content,
         metadata: {
@@ -107,15 +123,26 @@ export async function addDocument(
 }
 
 /**
- * Add multiple documents
+ * Add multiple documents for a specific user
  */
 export async function indexDocuments(
-    documents: Array<{ content: string; metadata: DocumentMetadata }>
+    documents: Array<{ content: string; metadata: DocumentMetadata }>,
+    userId?: string,
+    source?: string
 ): Promise<string[]> {
     const ids: string[] = [];
 
+    // If source provided, clear previous documents from this source to avoid duplicates
+    if (source) {
+        deleteBySource(source, userId);
+    }
+
     for (const doc of documents) {
-        const id = await addDocument(doc.content, doc.metadata);
+        const id = await addDocument(
+            doc.content,
+            { ...doc.metadata, source: source || doc.metadata.source },
+            userId
+        );
         ids.push(id);
     }
 
@@ -123,7 +150,7 @@ export async function indexDocuments(
 }
 
 /**
- * Query documents with improved matching
+ * Query documents with improved matching for a specific user
  */
 export async function queryDocuments(
     query: string,
@@ -131,16 +158,23 @@ export async function queryDocuments(
         topK?: number;
         type?: DocumentMetadata['type'];
         minScore?: number;
+        userId?: string;
     }
 ): Promise<RAGDocument[]> {
-    const { topK = 5, type, minScore = 0.5 } = options || {};
+    const { topK = 5, type, minScore = 0.5, userId } = options || {};
+    const store = getUserStore(userId);
+
+    // If store is empty, try to rebuild from DB
+    if (store.size === 0 && userId && userId !== DEFAULT_USER_ID) {
+        await rebuildIndexFromDb(userId);
+    }
 
     const queryTokens = tokenize(query);
     if (queryTokens.length === 0) return [];
 
     const results: Array<{ doc: StoredDocument; score: number }> = [];
 
-    for (const doc of documentStore.values()) {
+    for (const doc of store.values()) {
         // Filter by type if specified
         if (type && doc.metadata.type !== type) continue;
 
@@ -164,17 +198,36 @@ export async function queryDocuments(
 }
 
 /**
- * Get a document by ID
+ * Get a document by ID for a specific user
  */
-export function getDocument(id: string): StoredDocument | undefined {
-    return documentStore.get(id);
+export function getDocument(id: string, userId?: string): StoredDocument | undefined {
+    const store = getUserStore(userId);
+    return store.get(id);
 }
 
 /**
- * Delete a document
+ * Delete a document for a specific user
  */
-export function deleteDocument(id: string): boolean {
-    return documentStore.delete(id);
+export function deleteDocument(id: string, userId?: string): boolean {
+    const store = getUserStore(userId);
+    return store.delete(id);
+}
+
+/**
+ * Delete all documents associated with a source (filename)
+ */
+export function deleteBySource(source: string, userId?: string): number {
+    const store = getUserStore(userId);
+    let deletedCount = 0;
+
+    for (const [id, doc] of store.entries()) {
+        if (doc.metadata.source === source) {
+            store.delete(id);
+            deletedCount++;
+        }
+    }
+
+    return deletedCount;
 }
 
 /**
@@ -236,31 +289,35 @@ export function parseBehavioralAnswers(
 }
 
 /**
- * Get document count
+ * Get document count for a specific user
  */
-export function getDocumentCount(): number {
-    return documentStore.size;
+export function getDocumentCount(userId?: string): number {
+    const store = getUserStore(userId);
+    return store.size;
 }
 
 /**
- * Get all documents
+ * Get all documents for a specific user
  */
-export function getAllDocuments(): StoredDocument[] {
-    return Array.from(documentStore.values());
+export function getAllDocuments(userId?: string): StoredDocument[] {
+    const store = getUserStore(userId);
+    return Array.from(store.values());
 }
 
 /**
- * Clear all documents
+ * Clear all documents for a specific user
  */
-export function clearDocuments(): void {
-    documentStore.clear();
+export function clearDocuments(userId?: string): void {
+    const store = getUserStore(userId);
+    store.clear();
 }
 
 /**
- * Search by metadata
+ * Search by metadata for a specific user
  */
-export function searchByType(type: DocumentMetadata['type']): RAGDocument[] {
-    return Array.from(documentStore.values())
+export function searchByType(type: DocumentMetadata['type'], userId?: string): RAGDocument[] {
+    const store = getUserStore(userId);
+    return Array.from(store.values())
         .filter(doc => doc.metadata.type === type)
         .map(doc => ({
             id: doc.id,
@@ -269,4 +326,25 @@ export function searchByType(type: DocumentMetadata['type']): RAGDocument[] {
         }));
 }
 
-export { documentStore };
+/**
+ * Rebuild the in-memory index from the database for a specific user
+ */
+export async function rebuildIndexFromDb(userId: string): Promise<void> {
+    const { default: db } = await import('@/lib/db');
+
+    // Get all files for this user from DB
+    const files = db.prepare('SELECT filename, content, file_type FROM rag_files WHERE user_id = ?').all(userId) || [];
+
+    // Clear current in-memory store for this user to avoid duplicates
+    clearDocuments(userId);
+
+    for (const file of files) {
+        if (!file.content) continue;
+
+        const documents = parseBehavioralAnswers(file.content);
+        await indexDocuments(documents, userId, file.filename);
+    }
+}
+
+// Export for backward compatibility (uses default user)
+export { userDocumentStores as documentStore };

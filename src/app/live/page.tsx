@@ -5,8 +5,10 @@ import Link from 'next/link';
 import { AvatarQuality } from '@heygen/streaming-avatar';
 import { useHeyGenStreaming } from '@/hooks/useHeyGenStreaming';
 import { useStreaming } from '@/hooks/useStreaming';
+import { useUserProfiles } from '@/hooks/useUserProfiles';
 
 export default function LiveInterviewPage() {
+    const { activeUser, activeUserId } = useUserProfiles();
     const videoRef = useRef<HTMLVideoElement>(null);
     const [testText, setTestText] = useState('');
     const [isGenerating, setIsGenerating] = useState(false);
@@ -27,7 +29,7 @@ export default function LiveInterviewPage() {
         if (!videoRef.current) return;
         await startSession(videoRef.current, {
             quality: AvatarQuality.Medium,
-            avatarName: 'Wayne_20240711', // Default avatar
+            avatarName: activeUser?.avatar?.avatarName || 'Wayne_20240711', // User avatar or default
         });
     };
 
@@ -48,7 +50,12 @@ export default function LiveInterviewPage() {
             // Generate response
             const fullResponse = await stream(
                 [{ role: 'user', content: testText }],
-                { useRag: true }
+                {
+                    useRag: true,
+                    userId: activeUserId || undefined,
+                    provider: activeUser?.llm?.cloudProvider,
+                    model: activeUser?.llm?.cloudModel
+                }
             );
 
             // Speak the response

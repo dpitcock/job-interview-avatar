@@ -60,3 +60,12 @@ OLLAMA_BASE_URL=http://localhost:11434
 OLLAMA_MODEL=deepseek-r1:latest
 CHROMA_DB_PATH=./data/chroma
 ```
+
+## UI Settings (Database)
+While `.env.local` sets the initial boot configuration, the following settings are managed via the **Settings (⚙️)** page in the UI and stored in the SQLite database:
+
+- **Interview Mode**: Global toggle between LOCAL/CLOUD.
+- **Default Local Model**: The model name passed to Ollama.
+- **Default Cloud Model**: The model name passed to OpenAI/Anthropic.
+
+These database settings act as the primary configuration and will override `.env.local` defaults once saved.

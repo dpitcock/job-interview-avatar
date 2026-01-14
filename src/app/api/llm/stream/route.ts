@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server';
 import config from '@/lib/config';
 import { queryDocuments } from '@/lib/rag';
+import { buildInterviewPrompt, detectQuestionCategory } from '@/lib/prompts';
 import type { LLMMessage, RAGContext } from '@/types';
 
 interface StreamRequest {
@@ -8,12 +9,13 @@ interface StreamRequest {
     useRag?: boolean;
     provider?: string;
     model?: string;
+    userId?: string;
 }
 
 export async function POST(request: NextRequest) {
     try {
         const body: StreamRequest = await request.json();
-        const { messages, useRag = true, provider, model } = body;
+        const { messages, useRag = true, provider, model, userId } = body;
 
         if (!messages || !Array.isArray(messages)) {
             return new Response(JSON.stringify({ error: 'Messages are required' }), {
@@ -22,23 +24,47 @@ export async function POST(request: NextRequest) {
             });
         }
 
-        // Determine provider/model
-        const selectedProvider = provider || (config.mode === 'LOCAL' ? 'ollama' : 'anthropic');
-        const selectedModel = model || (config.mode === 'LOCAL'
-            ? config.llm.local.model
-            : config.llm.cloud.model) || 'deepseek-r1:latest';
+        const { default: db } = await import('@/lib/db');
+        const systemRows = db.prepare('SELECT key, value FROM system_settings').all();
+        const sys = systemRows.reduce((acc: any, row: any) => {
+            acc[row.key] = row.value;
+            return acc;
+        }, {});
+
+        let activeMode = sys.llm_mode || config.mode;
+        let activeProvider = activeMode === 'LOCAL' ? 'ollama' : sys.llm_cloud_provider;
+        let activeModel = activeMode === 'LOCAL' ? sys.llm_local_model : sys.llm_cloud_model;
+
+        if (userId) {
+            const user = db.prepare('SELECT * FROM users WHERE id = ?').get(userId);
+            if (user) {
+                activeMode = user.llm_preferred_mode || activeMode;
+                activeProvider = activeMode === 'LOCAL' ? 'ollama' : (user.llm_cloud_provider || activeProvider);
+                activeModel = activeMode === 'LOCAL'
+                    ? (user.llm_local_model || activeModel)
+                    : (user.llm_cloud_model || activeModel);
+            }
+        }
+
+        const selectedProvider = provider || activeProvider || (activeMode === 'LOCAL' ? 'ollama' : 'anthropic');
+        const selectedModel = model || activeModel || 'deepseek-r1:latest';
 
         // Get RAG context
         const lastUserMessage = [...messages].reverse().find(m => m.role === 'user');
         let context: RAGContext | undefined;
         if (useRag && lastUserMessage) {
-            const documents = await queryDocuments(lastUserMessage.content, { topK: 3 });
+            const documents = await queryDocuments(lastUserMessage.content, { topK: 5, userId });
             if (documents.length > 0) {
                 context = { query: lastUserMessage.content, documents };
             }
         }
 
-        const systemPrompt = buildSystemPrompt(context);
+        // Detect category and build enhanced system prompt
+        const category = lastUserMessage ? detectQuestionCategory(lastUserMessage.content) : 'general';
+        const systemPrompt = buildInterviewPrompt(
+            category,
+            context?.documents.map(d => d.content)
+        );
 
         // Create streaming response
         const stream = new ReadableStream({
@@ -248,21 +274,4 @@ async function streamAnthropic(
     }
 }
 
-// ============================================================================
-// System Prompt
-// ============================================================================
-function buildSystemPrompt(context?: RAGContext): string {
-    const basePrompt = `You are an AI assistant helping a Senior Frontend Lead prepare for job interviews. 
-You have deep expertise in React, Next.js, TypeScript, and modern frontend development.
-Provide thoughtful, experience-based answers that demonstrate leadership and technical depth.
-Keep answers concise but substantive (2-3 minutes when spoken).
-Use natural speech patterns, not bullet points.`;
-
-    if (!context?.documents.length) return basePrompt;
-
-    const contextText = context.documents
-        .map((doc, i) => `[Reference ${i + 1}]: ${doc.content}`)
-        .join('\n\n');
-
-    return `${basePrompt}\n\nUse this context from your experience:\n\n${contextText}`;
-}
+// System Prompt building moved to lib/prompts.ts

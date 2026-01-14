@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useStreaming } from '@/hooks/useStreaming';
 import { useAudioPlayer } from '@/hooks/useAudioPlayer';
+import { useUserProfiles } from '@/hooks/useUserProfiles';
 import { detectQuestionCategory } from '@/lib/prompts';
 
 interface Question {
@@ -46,6 +47,7 @@ interface LLMSettings {
 }
 
 export default function PracticePage() {
+    const { activeUser, activeUserId } = useUserProfiles();
     const [selectedCategory, setSelectedCategory] = useState<Category>('all');
     const [currentQuestion, setCurrentQuestion] = useState<Question | null>(null);
     const [isAnswering, setIsAnswering] = useState(false);
@@ -157,6 +159,7 @@ export default function PracticePage() {
                 provider: settings.provider,
                 model: settings.model, // This will use the selected model
                 useRag: true,
+                userId: activeUserId || undefined,
             }
         );
     };

@@ -16,7 +16,7 @@ export function useStreaming(options?: UseStreamingOptions) {
 
     const stream = async (
         messages: Array<{ role: string; content: string }>,
-        config?: { provider?: string; model?: string; useRag?: boolean }
+        config?: { provider?: string; model?: string; useRag?: boolean; userId?: string }
     ) => {
         // Abort any existing stream
         if (abortControllerRef.current) {
@@ -37,6 +37,7 @@ export function useStreaming(options?: UseStreamingOptions) {
                     provider: config?.provider,
                     model: config?.model,
                     useRag: config?.useRag ?? true,
+                    userId: config?.userId,
                 }),
                 signal: abortControllerRef.current.signal,
             });

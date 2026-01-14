@@ -22,11 +22,20 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // Determine provider/model (from request or fallback to config)
-        const selectedProvider = provider || (config.mode === 'LOCAL' ? 'ollama' : 'anthropic');
-        const selectedModel = model || (config.mode === 'LOCAL'
-            ? config.llm.local.model
-            : config.llm.cloud.model) || 'deepseek-r1:latest';
+        const { default: db } = await import('@/lib/db');
+        const systemRows = db.prepare('SELECT key, value FROM system_settings').all();
+        const sys = systemRows.reduce((acc: any, row: any) => {
+            acc[row.key] = row.value;
+            return acc;
+        }, {});
+
+        const activeMode = sys.llm_mode || config.mode;
+        const activeProvider = activeMode === 'LOCAL' ? 'ollama' : (sys.llm_cloud_provider || 'openai');
+        const activeModel = activeMode === 'LOCAL' ? (sys.llm_local_model || 'deepseek-r1:latest') : (sys.llm_cloud_model || 'gpt-4o');
+
+        // Determine provider/model (from request or fallback to system settings)
+        const selectedProvider = provider || activeProvider;
+        const selectedModel = model || activeModel;
 
         // Get last user message for RAG query
         const lastUserMessage = [...messages].reverse().find(m => m.role === 'user');

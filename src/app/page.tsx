@@ -2,6 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useUserProfiles } from '@/hooks/useUserProfiles';
+import { UserSelector } from '@/components/UserSelector';
+import { VercelBanner } from '@/components/VercelBanner';
 
 type Mode = 'LOCAL' | 'CLOUD';
 
@@ -10,6 +13,7 @@ interface SetupStatus {
   avatar: { ready: boolean; name?: string };
   rag: { ready: boolean; count: number };
   llm: { ready: boolean; provider: string };
+  mode?: string;
 }
 
 export default function Dashboard() {
@@ -22,18 +26,50 @@ export default function Dashboard() {
   });
   const [isLive, setIsLive] = useState(false);
 
-  // Check setup status on mount
+  const {
+    users,
+    activeUser,
+    activeUserId,
+    isLoaded,
+    canAddUser,
+    setActiveUser,
+  } = useUserProfiles();
+
+  // Check setup status on mount and when activeUserId changes
   useEffect(() => {
-    checkStatus();
-  }, []);
+    if (isLoaded) {
+      checkStatus();
+    }
+  }, [isLoaded, activeUserId]);
+
+  // Sync mode with status from server
+  useEffect(() => {
+    if (status.mode) {
+      setMode(status.mode as Mode);
+    }
+  }, [status.mode]);
 
   const checkStatus = async () => {
     try {
-      const res = await fetch('/api/status');
+      const url = activeUserId
+        ? `/api/status?userId=${activeUserId}`
+        : '/api/status';
+      const res = await fetch(url);
       if (res.ok) {
         const data = await res.json();
-        setStatus(data);
-        setMode(data.mode || 'LOCAL');
+        setStatus({
+          voice: {
+            ready: activeUser?.voice.configured || false,
+            name: activeUser?.voice.voiceId || undefined,
+          },
+          avatar: {
+            ready: activeUser?.avatar.configured || false,
+            name: activeUser?.avatar.avatarName || undefined,
+          },
+          llm: data.llm,
+          rag: data.rag,
+          mode: data.mode, // Add mode to status type
+        } as any);
       }
     } catch {
       // API not ready yet, use defaults
@@ -43,28 +79,63 @@ export default function Dashboard() {
   const toggleMode = async () => {
     const newMode = mode === 'LOCAL' ? 'CLOUD' : 'LOCAL';
     setMode(newMode);
-    // In a real implementation, this would persist the mode
+
+    if (activeUser) {
+      try {
+        await fetch(`/api/users/${activeUser.id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            llm: {
+              ...(activeUser.llm || {}),
+              preferredMode: newMode,
+            }
+          }),
+        });
+        // Refresh status
+        checkStatus();
+      } catch (e) {
+        console.error('Failed to persist mode:', e);
+      }
+    }
   };
 
   return (
     <div className="min-h-screen bg-background">
+      <VercelBanner />
       {/* Header */}
       <header className="glass sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center">
-              <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
-              </svg>
+            <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center overflow-hidden">
+              {activeUser?.avatar.imageUrl ? (
+                <img
+                  src={activeUser.avatar.imageUrl}
+                  alt={activeUser.name}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+                </svg>
+              )}
             </div>
             <div>
               <h1 className="text-xl font-bold gradient-text">InterviewAvatar</h1>
-              <p className="text-xs text-muted">AI Interview Agent</p>
+              <p className="text-xs text-muted">
+                {activeUser ? activeUser.name : 'AI Interview Agent'}
+              </p>
             </div>
           </div>
 
-          {/* Settings & Mode Toggle */}
+          {/* User Selector, Settings & Mode Toggle */}
           <div className="flex items-center gap-3">
+            <UserSelector
+              users={users}
+              activeUser={activeUser}
+              onSelectUser={setActiveUser}
+            />
+
             <Link
               href="/settings"
               className="p-2 rounded-full glass hover:glow-primary transition-all"
@@ -91,6 +162,20 @@ export default function Dashboard() {
       </header>
 
       <main className="max-w-7xl mx-auto px-6 py-8">
+        {/* No User Selected Warning */}
+        {isLoaded && !activeUser && (
+          <section className="glass rounded-2xl p-8 mb-8 border-2 border-warning text-center">
+            <div className="text-5xl mb-4">👤</div>
+            <h2 className="text-2xl font-bold mb-2">Create Your First Profile</h2>
+            <p className="text-muted mb-6 max-w-md mx-auto">
+              Create a user profile to get started. Each profile has its own voice, avatar, and context.
+            </p>
+            <Link href="/users" className="btn btn-primary glow-primary">
+              Create Profile
+            </Link>
+          </section>
+        )}
+
         {/* Hero Section */}
         <section className="text-center mb-12">
           <h2 className="text-4xl md:text-5xl font-bold mb-4">
@@ -98,131 +183,146 @@ export default function Dashboard() {
           </h2>
           <p className="text-lg text-muted max-w-2xl mx-auto">
             Let your digital avatar handle job interviews using your voice, face, and expertise.
-            Powered by {mode === 'LOCAL' ? 'DeepSeek + OpenVoice + LivePortrait' : 'Claude + ElevenLabs + HeyGen'}.
+            {activeUser && (
+              <span className="block mt-2 font-medium text-primary">
+                Current Brain: {mode === 'LOCAL' ? activeUser.llm?.localModel : activeUser.llm?.cloudModel}
+              </span>
+            )}
+            {!activeUser && (
+              <span className="block mt-2">
+                Powered by {mode === 'LOCAL' ? 'DeepSeek + OpenVoice + LivePortrait' : 'Claude + ElevenLabs + HeyGen'}.
+              </span>
+            )}
           </p>
         </section>
 
         {/* Setup Status Cards */}
-        <section className="grid md:grid-cols-4 gap-4 mb-8">
-          <StatusCard
-            title="LLM"
-            icon="🧠"
-            ready={status.llm.ready}
-            detail={mode === 'LOCAL' ? 'DeepSeek R1' : 'Claude 3.5'}
-            href="/setup/llm"
-          />
-          <StatusCard
-            title="Voice"
-            icon="🎤"
-            ready={status.voice.ready}
-            detail={status.voice.name || 'Not configured'}
-            href="/setup/voice"
-          />
-          <StatusCard
-            title="Avatar"
-            icon="👤"
-            ready={status.avatar.ready}
-            detail={status.avatar.name || 'Not configured'}
-            href="/setup/avatar"
-          />
-          <StatusCard
-            title="RAG"
-            icon="📚"
-            ready={status.rag.ready}
-            detail={status.rag.count > 0 ? `${status.rag.count} docs` : 'No documents'}
-            href="/setup/rag"
-          />
-        </section>
+        {activeUser && (
+          <section className="grid md:grid-cols-4 gap-4 mb-8">
+            <StatusCard
+              title="LLM"
+              icon="🧠"
+              ready={status.llm.ready}
+              detail={status.llm.provider}
+              href="/setup/llm"
+            />
+            <StatusCard
+              title="Voice"
+              icon="🎤"
+              ready={status.voice.ready}
+              detail={status.voice.name || 'Not configured'}
+              href="/setup/voice"
+            />
+            <StatusCard
+              title="Avatar"
+              icon="👤"
+              ready={status.avatar.ready}
+              detail={status.avatar.name || 'Not configured'}
+              href="/setup/avatar"
+            />
+            <StatusCard
+              title="RAG"
+              icon="📚"
+              ready={status.rag.ready}
+              detail={status.rag.count > 0 ? `${status.rag.count} docs` : 'No documents'}
+              href="/setup/rag"
+            />
+          </section>
+        )}
 
         {/* Main Actions */}
-        <section className="grid md:grid-cols-2 gap-6 mb-12">
-          {/* Start Interview */}
-          <div className="glass rounded-2xl p-8 card-interactive">
-            <div className="flex items-start justify-between mb-6">
-              <div>
-                <h3 className="text-2xl font-bold mb-2">Start Interview</h3>
-                <p className="text-muted">
-                  Launch your AI avatar for a live Zoom interview session.
-                </p>
+        {activeUser && (
+          <section className="grid md:grid-cols-2 gap-6 mb-12">
+            {/* Start Interview */}
+            <div className="glass rounded-2xl p-8 card-interactive">
+              <div className="flex items-start justify-between mb-6">
+                <div>
+                  <h3 className="text-2xl font-bold mb-2">Start Interview</h3>
+                  <p className="text-muted">
+                    Launch your AI avatar for a live Zoom interview session.
+                  </p>
+                </div>
+                <div className="w-16 h-16 rounded-2xl bg-primary/20 flex items-center justify-center text-3xl">
+                  🎬
+                </div>
               </div>
-              <div className="w-16 h-16 rounded-2xl bg-primary/20 flex items-center justify-center text-3xl">
-                🎬
+
+              <div className="flex items-center gap-2 mb-6 text-sm">
+                <span className={`w-2 h-2 rounded-full ${allReady(status) ? 'bg-success animate-pulse-slow' : 'bg-warning'}`} />
+                <span className={allReady(status) ? 'text-success' : 'text-warning'}>
+                  {allReady(status) ? 'Ready to go' : 'Complete setup first'}
+                </span>
               </div>
+
+              <Link
+                href={allReady(status) ? '/live' : '#'}
+                className={`btn w-full ${allReady(status) ? 'btn-primary glow-primary' : 'btn-secondary opacity-50 cursor-not-allowed pointer-events-none'}`}
+              >
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.348a1.125 1.125 0 010 1.971l-11.54 6.347a1.125 1.125 0 01-1.667-.985V5.653z" />
+                </svg>
+                {isLive ? 'Interview Active' : 'Start Interview'}
+              </Link>
             </div>
 
-            <div className="flex items-center gap-2 mb-6 text-sm">
-              <span className={`w-2 h-2 rounded-full ${allReady(status) ? 'bg-success animate-pulse-slow' : 'bg-warning'}`} />
-              <span className={allReady(status) ? 'text-success' : 'text-warning'}>
-                {allReady(status) ? 'Ready to go' : 'Complete setup first'}
-              </span>
+            {/* Practice Mode */}
+            <div className="glass rounded-2xl p-8 card-interactive">
+              <div className="flex items-start justify-between mb-6">
+                <div>
+                  <h3 className="text-2xl font-bold mb-2">Practice Mode</h3>
+                  <p className="text-muted">
+                    Mock interviews with common questions to refine your responses.
+                  </p>
+                </div>
+                <div className="w-16 h-16 rounded-2xl bg-success/20 flex items-center justify-center text-3xl">
+                  🎯
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-3 mb-6 text-center text-sm">
+                <div className="p-3 rounded-xl bg-card">
+                  <div className="text-xl font-bold">25</div>
+                  <div className="text-muted">Behavioral</div>
+                </div>
+                <div className="p-3 rounded-xl bg-card">
+                  <div className="text-xl font-bold">15</div>
+                  <div className="text-muted">Technical</div>
+                </div>
+                <div className="p-3 rounded-xl bg-card">
+                  <div className="text-xl font-bold">10</div>
+                  <div className="text-muted">Situational</div>
+                </div>
+              </div>
+
+              <Link href="/practice" className="btn btn-secondary w-full">
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.5 12c0-1.232.046-2.453.138-3.662a4.006 4.006 0 013.7-3.7 48.678 48.678 0 017.324 0 4.006 4.006 0 013.7 3.7c.017.22.032.441.046.662M4.5 12l-3-3m3 3l-3 3M4.5 12h15" />
+                </svg>
+                Start Practice
+              </Link>
             </div>
-
-            <Link
-              href={allReady(status) ? '/live' : '#'}
-              className={`btn w-full ${allReady(status) ? 'btn-primary glow-primary' : 'btn-secondary opacity-50 cursor-not-allowed pointer-events-none'}`}
-            >
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.348a1.125 1.125 0 010 1.971l-11.54 6.347a1.125 1.125 0 01-1.667-.985V5.653z" />
-              </svg>
-              {isLive ? 'Interview Active' : 'Start Interview'}
-            </Link>
-          </div>
-
-          {/* Practice Mode */}
-          <div className="glass rounded-2xl p-8 card-interactive">
-            <div className="flex items-start justify-between mb-6">
-              <div>
-                <h3 className="text-2xl font-bold mb-2">Practice Mode</h3>
-                <p className="text-muted">
-                  Mock interviews with common questions to refine your responses.
-                </p>
-              </div>
-              <div className="w-16 h-16 rounded-2xl bg-success/20 flex items-center justify-center text-3xl">
-                🎯
-              </div>
-            </div>
-
-            <div className="grid grid-cols-3 gap-3 mb-6 text-center text-sm">
-              <div className="p-3 rounded-xl bg-card">
-                <div className="text-xl font-bold">25</div>
-                <div className="text-muted">Behavioral</div>
-              </div>
-              <div className="p-3 rounded-xl bg-card">
-                <div className="text-xl font-bold">15</div>
-                <div className="text-muted">Technical</div>
-              </div>
-              <div className="p-3 rounded-xl bg-card">
-                <div className="text-xl font-bold">10</div>
-                <div className="text-muted">Situational</div>
-              </div>
-            </div>
-
-            <Link href="/practice" className="btn btn-secondary w-full">
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.5 12c0-1.232.046-2.453.138-3.662a4.006 4.006 0 013.7-3.7 48.678 48.678 0 017.324 0 4.006 4.006 0 013.7 3.7c.017.22.032.441.046.662M4.5 12l-3-3m3 3l-3 3M4.5 12h15" />
-              </svg>
-              Start Practice
-            </Link>
-          </div>
-        </section>
+          </section>
+        )}
 
         {/* Quick Stats */}
-        <section className="glass rounded-2xl p-6">
-          <h3 className="text-lg font-semibold mb-4">Performance Metrics</h3>
-          <div className="grid md:grid-cols-4 gap-6">
-            <MetricCard label="Avg Response Time" value="2.3s" target="<4s" isGood />
-            <MetricCard label="RAG Accuracy" value="94%" target=">90%" isGood />
-            <MetricCard label="Voice Latency" value="380ms" target="<500ms" isGood />
-            <MetricCard label="Sessions Today" value="0" target="-" isGood />
-          </div>
-        </section>
+        {activeUser && (
+          <section className="glass rounded-2xl p-6">
+            <h3 className="text-lg font-semibold mb-4">Performance Metrics</h3>
+            <div className="grid md:grid-cols-4 gap-6">
+              <MetricCard label="Avg Response Time" value="2.3s" target="<4s" isGood />
+              <MetricCard label="RAG Accuracy" value="94%" target=">90%" isGood />
+              <MetricCard label="Voice Latency" value="380ms" target="<500ms" isGood />
+              <MetricCard label="Sessions Today" value="0" target="-" isGood />
+            </div>
+          </section>
+        )}
       </main>
 
       {/* Footer */}
       <footer className="max-w-7xl mx-auto px-6 py-8 text-center text-muted text-sm">
         <p>
           InterviewAvatar — Open source AI for democratizing interviews.{' '}
-          <a href="https://github.com" className="text-primary hover:underline">
+          <a href="https://github.com/dpitcock/job-interview-avatar" className="text-primary hover:underline">
             GitHub
           </a>
         </p>

@@ -10,8 +10,8 @@
 
 1. **Clone the repository**:
    ```bash
-   git clone https://github.com/yourusername/interview-avatar.git
-   cd interview-avatar
+   git clone https://github.com/dpitcock/job-interview-avatar.git
+   cd job-interview-avatar
    ```
 
 2. **Configure environment**:
@@ -82,7 +82,7 @@ docker-compose exec ollama ollama pull deepseek-r1:latest
    git init
    git add .
    git commit -m "Initial commit"
-   git remote add origin https://github.com/yourusername/interview-avatar.git
+   git remote add origin https://github.com/dpitcock/job-interview-avatar.git
    git push -u origin main
    ```
 
@@ -147,8 +147,8 @@ docker-compose exec ollama ollama pull deepseek-r1:latest
 
 3. **Clone and deploy**:
    ```bash
-   git clone https://github.com/yourusername/interview-avatar.git
-   cd interview-avatar
+   git clone https://github.com/dpitcock/job-interview-avatar.git
+   cd job-interview-avatar
    cp .env.example .env.local
    # Edit .env.local
    docker-compose up -d

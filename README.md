@@ -13,6 +13,29 @@ An open-source AI-powered interview agent that acts as your digital clone for Zo
 - 🎥 **Zoom Integration**: OBS virtual camera + audio routing
 - ⚡ **Real-time**: <5s end-to-end latency (question → video response)
 
+## 👤 User Profiles & Context (RAG)
+
+The system supports multiple user profiles, each isolated with its own configuration and expert knowledge.
+
+### How it works
+1.  **Identity Management**: Profiles are stored in a local SQLite database (`data/interview.db`). This includes basic info, HeyGen avatar IDs, ElevenLabs voice IDs, and LLM preferences.
+2.  **Expert Context (RAG)**: When you upload a document (Resume, Portfolio, Experience) to a specific profile:
+    -   The file's **full content** is indexed into the vector store for real-time retrieval by the LLM.
+    -   A **reference record** is added to the SQLite `rag_files` table, linking the `filename` and `timestamp` to that user's ID.
+3.  **Persistence & Deletion**:
+    -   Deleting a user profile automatically performs a cascade delete, removing all associated RAG file metadata.
+    -   The vector store is updated to ensure only documents belonging to the active user are used during the interview.
+
+### 🌐 Vercel Demo Mode
+When deployed on Vercel or in demo environments, the application operates in a **read-only mock mode**:
+-   **Static Fallback**: User profiles are loaded from a static `src/data/users-fallback.json` file.
+-   **Safe Exploration**: Profile creation, editing, and RAG uploads are visually disabled.
+-   **Mock Responses**: AI responses use local mock logic to ensure the demo works without external dependencies.
+-   **Pre-populated Data**: Includes demo users like "Samuel Yoon" with pre-configured RAG context.
+-   **Fictional Context**: Specialized `.md` files (found in `docs/mock-user-context-files/`) provide deep, realistic context for the demo persona, demonstrating how the RAG system leverages specific behavioral and technical histories to ground AI responses.
+
+---
+
 ## Quick Start
 
 ### Prerequisites
@@ -24,7 +47,7 @@ An open-source AI-powered interview agent that acts as your digital clone for Zo
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/interview-avatar.git
+git clone https://github.com/dpitcock/job-interview-avatar.git
 cd interview-avatar
 
 # Install dependencies
@@ -115,6 +138,11 @@ docker-compose up -d
 - [Deployment](docs/deployment.md) - Production deployment
 - [API Reference](docs/api-reference.md) - REST API documentation
 - [Configuration](docs/configuration.md) - Environment variables
+
+### External API Documentation
+
+- [ElevenLabs Quickstart](https://elevenlabs.io/docs/developers/quickstart) - Voice cloning & TTS API
+- [HeyGen Quickstart](https://docs.heygen.com/docs/quick-start) - Interactive avatar streaming API
 
 ## Tech Stack
 
