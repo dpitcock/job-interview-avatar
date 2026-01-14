@@ -6,6 +6,7 @@
       "email": "syoon@protonmail.com",
       "avatar": {
         "configured": true,
+        "imageUrl": "https://files2.heygen.ai/avatar/v3/b66c9f3dabf74b03832ebe2dfadd935f_44330/preview_talk_1.webp",
         "avatarName": "Ren_expressive_2024112701"
       },
       "voice": {
@@ -44,8 +45,8 @@
         }
       ],
       "createdAt": "2026-01-14T11:32:01.797Z",
-      "updatedAt": "2026-01-14T11:33:31.787Z"
+      "updatedAt": "2026-01-14T11:51:04.300Z"
     }
   ],
-  "exportedAt": "2026-01-14T11:50:47.599Z"
+  "exportedAt": "2026-01-14T12:12:47.686Z"
 }
