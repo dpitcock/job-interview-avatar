@@ -15,6 +15,8 @@ function addSamuelYoon() {
             name TEXT NOT NULL,
             email TEXT,
             phone TEXT,
+            role TEXT,
+            situation TEXT,
             avatar_configured BOOLEAN DEFAULT 0,
             avatar_name TEXT,
             avatar_image_url TEXT,
@@ -52,6 +54,8 @@ function addSamuelYoon() {
         name: 'Samuel Yoon',
         email: 'syoon@protonmail.com',
         phone: '',
+        role: 'Senior Frontend Engineer',
+        situation: 'Applying for a Senior Frontend role at a major tech company. The interview covers technical experience, leadership, and culture fit.',
         avatar_configured: 0,
         avatar_name: 'Wayne_20240711',
         avatar_image_url: 'https://files2.heygen.ai/avatar/v3/b66c9f3dabf74b03832ebe2dfadd935f_44330/preview_talk_1.webp',
@@ -69,17 +73,17 @@ function addSamuelYoon() {
 
     const stmt = db.prepare(`
         INSERT INTO users (
-            id, name, email, phone, 
+            id, name, email, phone, role, situation,
             avatar_configured, avatar_name, avatar_image_url,
             voice_configured, voice_id, voice_sample_url,
             llm_local_model, llm_cloud_provider, llm_cloud_model, llm_preferred_mode,
             is_demo,
             created_at, updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
 
     stmt.run(
-        user.id, user.name, user.email, user.phone,
+        user.id, user.name, user.email, user.phone, user.role, user.situation,
         user.avatar_configured, user.avatar_name, user.avatar_image_url,
         user.voice_configured, user.voice_id, user.voice_sample_url,
         user.llm_local_model, user.llm_cloud_provider, user.llm_cloud_model,

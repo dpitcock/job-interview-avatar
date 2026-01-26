@@ -1,4 +1,4 @@
-# OBS Setup Guide for InterviewAvatar
+# OBS Setup Guide for Twinterview Agent
 
 This guide shows you how to set up OBS to route your AI avatar to Zoom.
 
@@ -6,7 +6,7 @@ This guide shows you how to set up OBS to route your AI avatar to Zoom.
 
 - **OBS Studio** installed ([download here](https://obsproject.com/))
 - **OBS WebSocket Plugin** (built-in for OBS 28+)
-- InterviewAvatar running on `http://localhost:3001`
+- Twinterview Agent running on `http://localhost:3001`
 
 ## Step 1: Install OBS
 
@@ -32,7 +32,7 @@ brew install --cask obs
 
 1. In OBS, click **+** under **Sources**
 2. Select **Browser**
-3. Name it "InterviewAvatar"
+3. Name it "Twinterview Agent"
 4. Settings:
    - **URL**: `http://localhost:3001/live?obs=true`
    - **Width**: `1920`
@@ -69,7 +69,7 @@ brew install --cask obs
 
 ## Advanced: Automated OBS Control
 
-InterviewAvatar can control OBS automatically via WebSocket.
+Twinterview Agent can control OBS automatically via WebSocket.
 
 ### Add to `.env.local`:
 ```bash

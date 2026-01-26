@@ -1,4 +1,4 @@
-# Contributing to InterviewAvatar
+# Contributing to Twinterview Agent
 
 Thank you for your interest in contributing! This project aims to democratize interview preparation by making AI interview tools accessible to everyone.
 

@@ -1,6 +1,6 @@
 # Testing Guide
 
-This guide covers how to test InterviewAvatar at each phase.
+This guide covers how to test Twinterview Agent at each phase.
 
 ---
 

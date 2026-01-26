@@ -8,23 +8,23 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const query = searchParams.get('query');
     const type = searchParams.get('type') as 'behavioral' | 'technical' | 'project' | 'general' | null;
-    const userId = searchParams.get('userId') || undefined;
+    const candidateId = searchParams.get('candidateId') || searchParams.get('userId') || undefined;
 
     if (query) {
         const documents = await queryDocuments(query, {
             topK: parseInt(searchParams.get('topK') || '5'),
             type: type || undefined,
-            userId,
+            candidateId,
         });
         return NextResponse.json({ documents, count: documents.length });
     }
 
     // Return status for specific user
-    const files = userId
-        ? (db.prepare('SELECT filename, created_at FROM rag_files WHERE user_id = ?').all(userId) || [])
+    const files = candidateId
+        ? (db.prepare('SELECT filename, created_at FROM rag_files WHERE candidate_id = ?').all(candidateId) || [])
         : [];
 
-    const count = userId ? files.length : getDocumentCount();
+    const count = candidateId ? files.length : getDocumentCount();
 
     return NextResponse.json({
         count,
@@ -45,7 +45,7 @@ export async function POST(request: NextRequest) {
             // Handle file upload
             const formData = await request.formData();
             const file = formData.get('file') as File | null;
-            const userId = formData.get('userId') as string | null;
+            const candidateId = (formData.get('candidateId') || formData.get('userId')) as string | null;
 
             if (!file) {
                 return NextResponse.json(
@@ -56,17 +56,17 @@ export async function POST(request: NextRequest) {
 
             const text = await extractTextFromFile(file);
             const documents = parseBehavioralAnswers(text);
-            const ids = await indexDocuments(documents, userId || undefined, file.name);
+            const ids = await indexDocuments(documents, candidateId || undefined, file.name);
 
             // Record file metadata in DB
-            if (userId) {
+            if (candidateId) {
                 // Check if already exists to avoid duplicates in DB
-                const existing = db.prepare('SELECT id FROM rag_files WHERE user_id = ? AND filename = ?').get(userId, file.name);
+                const existing = db.prepare('SELECT id FROM rag_files WHERE candidate_id = ? AND filename = ?').get(candidateId, file.name);
                 if (!existing) {
                     db.prepare(`
-                        INSERT INTO rag_files (user_id, filename, file_type, content)
+                        INSERT INTO rag_files (candidate_id, filename, file_type, content)
                         VALUES (?, ?, ?, ?)
-                    `).run(userId, file.name, file.type, text);
+                    `).run(candidateId, file.name, file.type, text);
                 } else {
                     // Update content if it re-uploaded
                     db.prepare('UPDATE rag_files SET content = ? WHERE id = ?').run(text, existing.id);
@@ -82,17 +82,17 @@ export async function POST(request: NextRequest) {
         } else {
             // Handle JSON body
             const body = await request.json();
-            const userId = body.userId as string | undefined;
+            const candidateId = (body.candidateId || body.userId) as string | undefined;
 
             if (Array.isArray(body.documents)) {
-                const ids = await indexDocuments(body.documents, userId, body.source);
+                const ids = await indexDocuments(body.documents, candidateId, body.source);
                 return NextResponse.json({
                     success: true,
                     count: ids.length,
                     ids,
                 });
             } else if (body.content) {
-                const id = await addDocument(body.content, body.metadata || { type: 'general' }, userId);
+                const id = await addDocument(body.content, body.metadata || { type: 'general' }, candidateId);
                 return NextResponse.json({
                     success: true,
                     id,
@@ -116,24 +116,24 @@ export async function POST(request: NextRequest) {
 // DELETE - Clear documents for a user
 export async function DELETE(request: NextRequest) {
     const { searchParams } = new URL(request.url);
-    const userId = searchParams.get('userId');
+    const candidateId = searchParams.get('candidateId') || searchParams.get('userId');
     const filename = searchParams.get('filename');
 
-    if (!userId) {
-        return NextResponse.json({ error: 'userId required' }, { status: 400 });
+    if (!candidateId) {
+        return NextResponse.json({ error: 'Candidate ID required' }, { status: 400 });
     }
 
     if (filename) {
         // Delete specific file
         const { deleteBySource } = await import('@/lib/rag');
-        deleteBySource(filename, userId);
+        deleteBySource(filename, candidateId);
 
-        db.prepare('DELETE FROM rag_files WHERE user_id = ? AND filename = ?').run(userId, filename);
+        db.prepare('DELETE FROM rag_files WHERE candidate_id = ? AND filename = ?').run(candidateId, filename);
         return NextResponse.json({ success: true, message: `Deleted ${filename}` });
     } else {
         // Clear all for user
-        clearDocuments(userId);
-        db.prepare('DELETE FROM rag_files WHERE user_id = ?').run(userId);
+        clearDocuments(candidateId);
+        db.prepare('DELETE FROM rag_files WHERE candidate_id = ?').run(candidateId);
         return NextResponse.json({ success: true, message: 'Cleared all documents' });
     }
 }

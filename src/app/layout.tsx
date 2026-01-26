@@ -13,12 +13,12 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "InterviewAvatar | AI Interview Agent",
+  title: "Twinterview Agent | AI Interview Assistant",
   description: "Your AI clone for job interviews. Let your digital avatar handle interviews using your voice, face, and expertise.",
   keywords: ["AI", "interview", "avatar", "voice cloning", "job interview", "automation"],
-  authors: [{ name: "InterviewAvatar" }],
+  authors: [{ name: "Twinterview Agent" }],
   openGraph: {
-    title: "InterviewAvatar | AI Interview Agent",
+    title: "Twinterview Agent | AI Interview Assistant",
     description: "Your AI clone for job interviews",
     type: "website",
   },

@@ -10,14 +10,16 @@ interface StreamRequest {
     provider?: string;
     model?: string;
     userId?: string;
+    candidateId?: string;
     category?: string; // Optional override
-    candidateInfo?: { name: string; role: string };
+    candidateInfo?: { name: string; role: string; situation: string };
 }
 
 export async function POST(request: NextRequest) {
     try {
         const body: StreamRequest = await request.json();
-        const { messages, useRag = true, provider, model, userId, category: categoryOverride, candidateInfo } = body;
+        const { messages, useRag = true, provider, model, category: categoryOverride, candidateInfo } = body;
+        const candidateId = body.candidateId || body.userId;
 
         if (!messages || !Array.isArray(messages)) {
             return new Response(JSON.stringify({ error: 'Messages are required' }), {
@@ -37,14 +39,14 @@ export async function POST(request: NextRequest) {
         let activeProvider = activeMode === 'LOCAL' ? 'ollama' : sys.llm_cloud_provider;
         let activeModel = activeMode === 'LOCAL' ? sys.llm_local_model : sys.llm_cloud_model;
 
-        if (userId) {
-            const user = db.prepare('SELECT * FROM users WHERE id = ?').get(userId);
-            if (user) {
-                activeMode = user.llm_preferred_mode || activeMode;
-                activeProvider = activeMode === 'LOCAL' ? 'ollama' : (user.llm_cloud_provider || activeProvider);
+        if (candidateId) {
+            const candidate = db.prepare('SELECT * FROM candidates WHERE id = ?').get(candidateId) as any;
+            if (candidate) {
+                activeMode = candidate.llm_preferred_mode || activeMode;
+                activeProvider = activeMode === 'LOCAL' ? 'ollama' : (candidate.llm_cloud_provider || activeProvider);
                 activeModel = activeMode === 'LOCAL'
-                    ? (user.llm_local_model || activeModel)
-                    : (user.llm_cloud_model || activeModel);
+                    ? (candidate.llm_local_model || activeModel)
+                    : (candidate.llm_cloud_model || activeModel);
             }
         }
 
@@ -55,7 +57,7 @@ export async function POST(request: NextRequest) {
         const lastUserMessage = [...messages].reverse().find(m => m.role === 'user');
         let context: RAGContext | undefined;
         if (useRag && lastUserMessage) {
-            const documents = await queryDocuments(lastUserMessage.content, { topK: 5, userId });
+            const documents = await queryDocuments(lastUserMessage.content, { topK: 5, candidateId });
             if (documents.length > 0) {
                 context = { query: lastUserMessage.content, documents };
             }

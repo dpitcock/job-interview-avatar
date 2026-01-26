@@ -4,16 +4,16 @@ import { generateShortId } from '@/lib/id';
 
 export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
-    const userId = searchParams.get('userId');
+    const candidateId = searchParams.get('candidateId') || searchParams.get('userId');
 
-    if (!userId) {
-        return NextResponse.json({ error: 'User ID is required' }, { status: 400 });
+    if (!candidateId) {
+        return NextResponse.json({ error: 'Candidate ID is required' }, { status: 400 });
     }
 
     try {
         const sessions = db.prepare(
-            'SELECT * FROM interview_sessions WHERE user_id = ? ORDER BY created_at DESC'
-        ).all(userId);
+            'SELECT * FROM interview_sessions WHERE candidate_id = ? ORDER BY created_at DESC'
+        ).all(candidateId);
         return NextResponse.json({ sessions });
     } catch (e) {
         console.error('Failed to fetch sessions:', e);
@@ -23,17 +23,19 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
     try {
-        const { userId, title } = await req.json();
+        const body = await req.json();
+        const candidateId = body.candidateId || body.userId;
+        const title = body.title;
 
-        if (!userId) {
-            return NextResponse.json({ error: 'User ID is required' }, { status: 400 });
+        if (!candidateId) {
+            return NextResponse.json({ error: 'Candidate ID is required' }, { status: 400 });
         }
 
         const sessionId = generateShortId(8);
 
         db.prepare(
-            'INSERT INTO interview_sessions (id, user_id, title) VALUES (?, ?, ?)'
-        ).run(sessionId, userId, title || `Interview Session ${new Date().toLocaleDateString()}`);
+            'INSERT INTO interview_sessions (id, candidate_id, title) VALUES (?, ?, ?)'
+        ).run(sessionId, candidateId, title || `Interview Session ${new Date().toLocaleDateString()}`);
 
         const session = db.prepare('SELECT * FROM interview_sessions WHERE id = ?').get(sessionId);
         return NextResponse.json({ session });

@@ -20,9 +20,10 @@ export function useStreaming(options?: UseStreamingOptions) {
             provider?: string;
             model?: string;
             useRag?: boolean;
-            userId?: string;
+            candidateId?: string;
+            userId?: string; // Legacy support
             category?: string;
-            candidateInfo?: { name: string; role: string };
+            candidateInfo?: { name: string; role: string; situation: string };
         }
     ) => {
         // Abort any existing stream
@@ -44,7 +45,7 @@ export function useStreaming(options?: UseStreamingOptions) {
                     provider: config?.provider,
                     model: config?.model,
                     useRag: config?.useRag ?? true,
-                    userId: config?.userId,
+                    candidateId: config?.candidateId || config?.userId,
                     category: config?.category,
                     candidateInfo: config?.candidateInfo,
                 }),

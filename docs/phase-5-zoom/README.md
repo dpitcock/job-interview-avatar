@@ -2,7 +2,7 @@
 
 ## Overview
 
-Phase 5 connects InterviewAvatar to Zoom using OBS Studio as a virtual camera.
+Phase 5 connects Twinterview Agent to Zoom using OBS Studio as a virtual camera.
 
 ## What's Included
 
@@ -25,7 +25,7 @@ Phase 5 connects InterviewAvatar to Zoom using OBS Studio as a virtual camera.
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                    InterviewAvatar                          │
+│                    Twinterview Agent                          │
 │  http://localhost:3001/live                                 │
 │                                                              │
 │  ┌──────────┐   ┌──────────┐   ┌──────────┐                │
@@ -119,7 +119,7 @@ NEXT_PUBLIC_OBS_WEBSOCKET_PASSWORD=your_password
 5. Participants should hear the audio
 
 ### Test 3: Full Pipeline
-1. Start InterviewAvatar at `/live`
+1. Start Twinterview Agent at `/live`
 2. Start OBS virtual camera
 3. Join Zoom meeting
 4. Generate a response
@@ -178,7 +178,7 @@ await startVirtualCamera();
 const { setScene } = useOBS();
 
 // Switch to avatar scene
-await setScene('InterviewAvatar');
+await setScene('Twinterview Agent');
 
 // Switch to screen share
 await setScene('ScreenShare');

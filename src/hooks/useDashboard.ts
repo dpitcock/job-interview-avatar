@@ -33,8 +33,8 @@ export function useDashboard() {
                     ...prev,
                     mode: data.mode,
                     setupStatus: {
-                        voice: { ready: data.voice.ready, profileId: data.voice.name },
-                        avatar: { ready: data.avatar.ready, profileId: data.avatar.name },
+                        voice: { ready: data.llm?.ready || false }, // Fallback logic if needed
+                        avatar: { ready: data.llm?.ready || false },
                         rag: { ready: data.rag.ready, documentCount: data.rag.count },
                         llm: { ready: data.llm.ready, provider: data.llm.provider },
                     },

@@ -1,8 +1,8 @@
-# 🎉 InterviewAvatar - Project Complete!
+# 🎉 Twinterview Agent - Project Complete!
 
 ## Overview
 
-InterviewAvatar is now **fully functional** - a complete AI-powered interview agent that can answer questions in real-time using your voice, face, and expertise.
+Twinterview Agent is now **fully functional** - a complete AI-powered interview agent that can answer questions in real-time using your voice, face, and expertise.
 
 ## ✅ All Phases Complete
 

@@ -1,0 +1,91 @@
+{
+    "Background and Resume": [
+        "Can you walk me through your resume?",
+        "How would you summarize your professional background?",
+        "Which role on your resume is most relevant to this position?",
+        "Are there any gaps in your employment history we should discuss?",
+        "What prompted your career transitions?",
+        "How does your experience align with this role?",
+        "What skills do you consider your strongest?",
+        "Are there any skills on the job description you are still developing?"
+    ],
+    "Company and Role Interest": [
+        "How did you hear about this position?",
+        "Why are you interested in this role?",
+        "Why do you want to work for our company?",
+        "What do you know about our products or services?",
+        "What stood out to you in the job description?",
+        "What about this role excites you the most?",
+        "What questions do you have about the role?",
+        "What do you think success looks like in this position?"
+    ],
+    "Career Goals and Motivation": [
+        "What are your short-term career goals?",
+        "What are your long-term career goals?",
+        "How does this role fit into your career plan?",
+        "What motivates you at work?",
+        "What kind of work do you find most fulfilling?",
+        "What are you hoping to gain from your next role?",
+        "What would make this role a great next step for you?"
+    ],
+    "Work Preferences and Style": [
+        "What type of work environment do you prefer?",
+        "Do you prefer working independently or collaboratively?",
+        "What management style do you work best with?",
+        "How do you prefer to receive feedback?",
+        "Do you prefer structured work or flexibility?",
+        "How do you typically prioritize your work?",
+        "What kind of team culture do you thrive in?"
+    ],
+    "Logistics and Availability": [
+        "When would you be available to start?",
+        "Are you currently interviewing elsewhere?",
+        "Do you have any upcoming planned time off?",
+        "Are you open to working overtime if needed?",
+        "Are you comfortable with the travel requirements of this role?",
+        "What is your preferred work schedule?",
+        "Are you open to contract or temporary work if applicable?"
+    ],
+    "Location and Work Arrangement": [
+        "Are you willing to commute to this location?",
+        "How long is your current commute?",
+        "Are you open to relocation?",
+        "Are you comfortable working on-site?",
+        "Are you interested in a hybrid or remote arrangement?",
+        "Do you have a home setup suitable for remote work?",
+        "Are you able to work across time zones if required?"
+    ],
+    "Compensation and Benefits": [
+        "What are your salary expectations?",
+        "What is your minimum acceptable compensation?",
+        "Are you open to negotiating compensation?",
+        "What benefits are most important to you?",
+        "Are you currently receiving bonuses or equity?",
+        "What compensation structure do you prefer (salary, bonus, equity)?",
+        "Are there any deal-breakers for you regarding compensation?"
+    ],
+    "Employment Status and Eligibility": [
+        "Are you legally authorized to work in this country?",
+        "Will you now or in the future require visa sponsorship?",
+        "Are you subject to any non-compete agreements?",
+        "Are you able to pass a background check?",
+        "Are you willing to undergo a drug screening if required?",
+        "Do you have any contractual obligations with your current employer?"
+    ],
+    "Decision Factors and Offer Readiness": [
+        "What factors are most important to you when considering an offer?",
+        "What would make you excited to accept an offer from us?",
+        "What would cause hesitation in accepting an offer?",
+        "If you receive multiple offers, how will you decide?",
+        "Are you comfortable with our hiring timeline?",
+        "Do you have any concerns about this role or company?"
+    ],
+    "Closing and Clarifying Questions": [
+        "Is there anything else we should know about you?",
+        "Is there anything on your resume we didn’t cover?",
+        "Do you have any questions for us?",
+        "What would you like to know before moving forward?",
+        "Is there anything that might prevent you from accepting this role?",
+        "Would you be willing to provide references?"
+    ]
+}

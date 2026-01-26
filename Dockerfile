@@ -1,4 +1,4 @@
-# Dockerfile for InterviewAvatar
+# Dockerfile for Twinterview Agent
 FROM node:22-alpine AS base
 
 # Install dependencies only when needed

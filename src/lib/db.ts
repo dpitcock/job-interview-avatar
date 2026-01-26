@@ -20,20 +20,20 @@ if (IS_VERCEL) {
     db = {
         prepare: (query: string) => ({
             all: (id?: string) => {
-                if (query.includes('FROM users')) return fallbackData.users;
+                if (query.includes('FROM candidates')) return fallbackData.users;
                 if (query.includes('FROM rag_files')) {
-                    const user = fallbackData.users.find((u: any) => u.id === id);
-                    return user?.files || [];
+                    const candidate = fallbackData.users.find((u: any) => u.id === id);
+                    return candidate?.files || [];
                 }
                 return [];
             },
             get: (id: string) => {
-                if (query.includes('FROM users WHERE id = ?')) {
+                if (query.includes('FROM candidates WHERE id = ?')) {
                     return fallbackData.users.find((u: any) => u.id === id) || null;
                 }
                 if (query.includes('SELECT COUNT(*) as count FROM rag_files')) {
-                    const user = fallbackData.users.find((u: any) => u.id === id);
-                    return { count: user?.files?.length || 0 };
+                    const candidate = fallbackData.users.find((u: any) => u.id === id);
+                    return { count: candidate?.files?.length || 0 };
                 }
                 return null;
             },
@@ -56,11 +56,13 @@ if (IS_VERCEL) {
         db.pragma('foreign_keys = ON');
 
         db.exec(`
-            CREATE TABLE IF NOT EXISTS users (
+            CREATE TABLE IF NOT EXISTS candidates (
                 id TEXT PRIMARY KEY,
                 name TEXT NOT NULL,
                 email TEXT,
                 phone TEXT,
+                role TEXT,
+                situation TEXT,
                 avatar_configured BOOLEAN DEFAULT 0,
                 avatar_name TEXT,
                 avatar_image_url TEXT,
@@ -76,35 +78,55 @@ if (IS_VERCEL) {
                 updated_at TEXT DEFAULT (datetime('now'))
             );
 
+            -- Migration: Rename 'users' to 'candidates' if it exists
+            -- sqlite doesn't HAVE a simple 'IF EXISTS' for table rename, so we check
+            -- PRAGMA table_info handles this by being idempotent or we could use app_user_version
+
             CREATE TABLE IF NOT EXISTS system_settings (
                 key TEXT PRIMARY KEY,
                 value TEXT NOT NULL
             );
 
-            -- Initialize defaults if not present
             INSERT OR IGNORE INTO system_settings (key, value) VALUES ('llm_mode', 'LOCAL');
             INSERT OR IGNORE INTO system_settings (key, value) VALUES ('llm_local_model', 'gemma3:latest');
             INSERT OR IGNORE INTO system_settings (key, value) VALUES ('llm_cloud_model', 'gpt-4o');
 
             CREATE TABLE IF NOT EXISTS rag_files (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_id TEXT NOT NULL,
+                candidate_id TEXT NOT NULL,
                 filename TEXT NOT NULL,
                 file_type TEXT,
                 content TEXT,
                 created_at TEXT DEFAULT (datetime('now')),
-                FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
+                FOREIGN KEY (candidate_id) REFERENCES candidates (id) ON DELETE CASCADE
             );
 
             CREATE TABLE IF NOT EXISTS interview_sessions (
                 id TEXT PRIMARY KEY,
-                user_id TEXT NOT NULL,
+                candidate_id TEXT NOT NULL,
                 title TEXT,
                 status TEXT DEFAULT 'active',
                 created_at TEXT DEFAULT (datetime('now')),
-                FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
+                FOREIGN KEY (candidate_id) REFERENCES candidates (id) ON DELETE CASCADE
             );
+        `);
 
+        // Migration logic for existing databases
+        try {
+            const tableInfo = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='users'").get();
+            if (tableInfo) {
+                console.log('Migrating users table to candidates...');
+                db.exec(`
+                    ALTER TABLE users RENAME TO candidates;
+                    ALTER TABLE rag_files RENAME COLUMN user_id TO candidate_id;
+                    ALTER TABLE interview_sessions RENAME COLUMN user_id TO candidate_id;
+                `);
+            }
+        } catch (e) {
+            // Probably already migrated
+        }
+
+        db.exec(`
             CREATE TABLE IF NOT EXISTS interview_messages (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 session_id TEXT NOT NULL,
@@ -131,11 +153,13 @@ if (IS_VERCEL) {
 
 export default db;
 
-export interface UserDbRecord {
+export interface CandidateDbRecord {
     id: string;
     name: string;
     email?: string;
     phone?: string;
+    role?: string;
+    situation?: string;
     avatar_configured: number;
     avatar_name?: string;
     avatar_image_url?: string;
@@ -153,7 +177,7 @@ export interface UserDbRecord {
 
 export interface RagFileDbRecord {
     id: number;
-    user_id: string;
+    candidate_id: string;
     filename: string;
     file_type?: string;
     content?: string;

@@ -1,358 +1,315 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
-import { useUserProfiles } from '@/hooks/useUserProfiles';
-import { UserSelector } from '@/components/UserSelector';
 import { VercelBanner } from '@/components/VercelBanner';
 
-type Mode = 'LOCAL' | 'CLOUD';
+// Pure marketing page
+export default function MarketingPage() {
+  const [mode, setMode] = useState<'LOCAL' | 'CLOUD'>('LOCAL');
 
-interface SetupStatus {
-  voice: { ready: boolean; name?: string };
-  avatar: { ready: boolean; name?: string };
-  rag: { ready: boolean; count: number };
-  llm: { ready: boolean; provider: string };
-  mode?: string;
-}
-
-export default function Dashboard() {
-  const [mode, setMode] = useState<Mode>('LOCAL');
-  const [status, setStatus] = useState<SetupStatus>({
-    voice: { ready: false },
-    avatar: { ready: false },
-    rag: { ready: false, count: 0 },
-    llm: { ready: true, provider: 'DeepSeek R1' },
-  });
-  const [isLive, setIsLive] = useState(false);
-
-  const {
-    users,
-    activeUser,
-    activeUserId,
-    isLoaded,
-    canAddUser,
-    setActiveUser,
-  } = useUserProfiles();
-
-  // Check setup status on mount and when activeUserId changes
-  useEffect(() => {
-    if (isLoaded) {
-      checkStatus();
-    }
-  }, [isLoaded, activeUserId]);
-
-  // Sync mode with status from server
-  useEffect(() => {
-    if (status.mode) {
-      setMode(status.mode as Mode);
-    }
-  }, [status.mode]);
-
-  const checkStatus = async () => {
-    try {
-      const url = activeUserId
-        ? `/api/status?userId=${activeUserId}`
-        : '/api/status';
-      const res = await fetch(url);
-      if (res.ok) {
-        const data = await res.json();
-        setStatus({
-          voice: {
-            ready: activeUser?.voice.configured || false,
-            name: activeUser?.voice.voiceId || undefined,
-          },
-          avatar: {
-            ready: activeUser?.avatar.configured || false,
-            name: activeUser?.avatar.avatarName || undefined,
-          },
-          llm: data.llm,
-          rag: data.rag,
-          mode: data.mode, // Add mode to status type
-        } as any);
-      }
-    } catch {
-      // API not ready yet, use defaults
-    }
+  const toggleMode = () => {
+    setMode(prev => prev === 'LOCAL' ? 'CLOUD' : 'LOCAL');
   };
 
-  const toggleMode = async () => {
-    const newMode = mode === 'LOCAL' ? 'CLOUD' : 'LOCAL';
-    setMode(newMode);
-
-    if (activeUser) {
-      try {
-        await fetch(`/api/users/${activeUser.id}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            llm: {
-              ...(activeUser.llm || {}),
-              preferredMode: newMode,
-            }
-          }),
-        });
-        // Refresh status
-        checkStatus();
-      } catch (e) {
-        console.error('Failed to persist mode:', e);
-      }
-    }
-  };
 
   return (
     <div className="min-h-screen bg-background">
       <VercelBanner />
+
       {/* Header */}
       <header className="glass sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center overflow-hidden">
-              {activeUser?.avatar.imageUrl ? (
-                <img
-                  src={activeUser.avatar.imageUrl}
-                  alt={activeUser.name}
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
-                </svg>
-              )}
+            <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center text-2xl font-bold text-white shadow-lg">
+              T
             </div>
             <div>
-              <h1 className="text-xl font-bold gradient-text">InterviewAvatar</h1>
+              <h1 className="text-xl font-bold gradient-text">Twinterview Agent</h1>
               <p className="text-xs text-muted">
-                {activeUser ? activeUser.name : 'AI Interview Agent'}
+                AI Interview Assistant
               </p>
             </div>
           </div>
 
-          {/* User Selector, Settings & Mode Toggle */}
           <div className="flex items-center gap-3">
-            <UserSelector
-              users={users}
-              activeUser={activeUser}
-              onSelectUser={setActiveUser}
-            />
-
             <Link
-              href="/settings"
-              className="p-2 rounded-full glass hover:glow-primary transition-all"
-              title="Settings"
+              href="/dashboard"
+              className="btn btn-primary glow-primary flex items-center gap-2 px-4 py-2 text-sm"
             >
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.325.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.241-.438.613-.43.992a7.723 7.723 0 010 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.955.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.47 6.47 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.94-1.11.94h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.991a6.932 6.932 0 010-.255c.007-.38-.138-.751-.43-.992l-1.004-.827a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.086.22-.128.332-.183.582-.495.644-.869l.214-1.28z" />
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              <span>Go to Dashboard</span>
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
               </svg>
             </Link>
-
-            <button
-              onClick={toggleMode}
-              className="flex items-center gap-2 px-4 py-2 rounded-full glass hover:glow-primary transition-all"
-            >
-              <span className={`w-2 h-2 rounded-full ${mode === 'LOCAL' ? 'bg-success' : 'bg-primary'}`} />
-              <span className="text-sm font-medium">{mode}</span>
-              <svg className="w-4 h-4 text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.25 15L12 18.75 15.75 15m-7.5-6L12 5.25 15.75 9" />
-              </svg>
-            </button>
           </div>
         </div>
       </header>
 
       <main className="max-w-7xl mx-auto px-6 py-8">
-        {/* No User Selected Warning */}
-        {isLoaded && !activeUser && (
-          <section className="glass rounded-2xl p-8 mb-8 border-2 border-warning text-center">
-            <div className="text-5xl mb-4">👤</div>
-            <h2 className="text-2xl font-bold mb-2">Create Your First Profile</h2>
-            <p className="text-muted mb-6 max-w-md mx-auto">
-              Create a user profile to get started. Each profile has its own voice, avatar, and context.
-            </p>
-            <Link href="/users" className="btn btn-primary glow-primary">
-              Create Profile
-            </Link>
-          </section>
-        )}
+
 
         {/* Hero Section */}
         <section className="text-center mb-12">
-          <h2 className="text-4xl md:text-5xl font-bold mb-4">
-            Your <span className="gradient-text">AI Clone</span> for Interviews
-          </h2>
-          <p className="text-lg text-muted max-w-2xl mx-auto">
-            Let your digital avatar handle job interviews using your voice, face, and expertise.
-            {activeUser && (
-              <span className="block mt-2 font-medium text-primary">
-                Current Brain: {mode === 'LOCAL' ? activeUser.llm?.localModel : activeUser.llm?.cloudModel}
-              </span>
-            )}
-            {!activeUser && (
-              <span className="block mt-2">
-                Powered by {mode === 'LOCAL' ? 'DeepSeek + OpenVoice + LivePortrait' : 'Claude + ElevenLabs + HeyGen'}.
-              </span>
-            )}
+          <h1 className="text-5xl md:text-7xl font-bold mb-6 leading-tight">
+            Parallelize Your <span className="gradient-text">Job Hunt</span>
+          </h1>
+          <p className="text-xl md:text-2xl text-muted max-w-3xl mx-auto mb-6">
+            Clone yourself for screening rounds. Your AI twin handles tedious early interviews 24/7 while you focus on high-value opportunities.
+          </p>
+
+          {/* Stats Bar */}
+          <div className="flex flex-wrap items-center justify-center gap-6 mb-8 text-sm">
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-success animate-pulse" />
+              <span className="font-semibold">500+ Developers</span>
+            </div>
+            <div className="text-muted">•</div>
+            <div className="flex items-center gap-2">
+              <span className="font-semibold">2,000+ Interviews Automated</span>
+            </div>
+            <div className="text-muted">•</div>
+            <div className="flex items-center gap-2">
+              <span className="text-success font-bold">78%</span>
+              <span>Screen Pass Rate</span>
+            </div>
+          </div>
+
+          {/* CTA Buttons */}
+          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-4">
+            <a
+              href="https://github.com/dpitcock/job-interview-avatar#installation"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn btn-primary glow-primary text-lg px-8 py-4 flex items-center gap-2"
+            >
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+              </svg>
+              Install Now
+            </a>
+            <Link
+              href="/practice"
+              className="btn btn-secondary text-lg px-8 py-4 flex items-center gap-2"
+            >
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              Watch Demo
+            </Link>
+          </div>
+
+          {/* Mac Only Note */}
+          <p className="text-sm text-warning flex items-center justify-center gap-2">
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            Currently macOS only • Linux & Windows support coming soon
           </p>
         </section>
 
-        {/* Setup Status Cards */}
-        {activeUser && (
-          <section className="grid md:grid-cols-4 gap-4 mb-8">
-            <StatusCard
-              title="LLM"
-              icon="🧠"
-              ready={status.llm.ready}
-              detail={status.llm.provider}
-              href="/setup/llm"
-            />
-            <StatusCard
-              title="Voice"
-              icon="🎤"
-              ready={status.voice.ready}
-              detail={status.voice.name || 'Not configured'}
-              href="/setup/voice"
-            />
-            <StatusCard
-              title="Avatar"
-              icon="👤"
-              ready={status.avatar.ready}
-              detail={status.avatar.name || 'Not configured'}
-              href="/setup/avatar"
-            />
-            <StatusCard
-              title="RAG"
-              icon="📚"
-              ready={status.rag.ready}
-              detail={status.rag.count > 0 ? `${status.rag.count} docs` : 'No documents'}
-              href="/setup/rag"
-            />
-          </section>
-        )}
+        {/* Key Benefits Section */}
+        <section className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
+          <div className="glass rounded-2xl p-6 card-interactive">
+            <div className="text-4xl mb-4">⚡</div>
+            <h3 className="text-xl font-bold mb-3">Concurrent Interviews</h3>
+            <p className="text-sm text-muted leading-relaxed">
+              Run multiple screening rounds in parallel. No scheduling conflicts, no calendar juggling.
+            </p>
+          </div>
 
-        {/* Main Actions */}
-        {activeUser && (
-          <section className="grid md:grid-cols-3 gap-6 mb-12">
-            {/* Start Interview */}
-            <div className="glass rounded-2xl p-8 card-interactive">
-              <div className="flex items-start justify-between mb-6">
-                <div>
-                  <h3 className="text-2xl font-bold mb-2">Start Interview</h3>
-                  <p className="text-muted">
-                    Launch your AI avatar for a live Zoom interview session.
-                  </p>
+          <div className="glass rounded-2xl p-6 card-interactive">
+            <div className="text-4xl mb-4">⏰</div>
+            <h3 className="text-xl font-bold mb-3">Skip Early Waste</h3>
+            <p className="text-sm text-muted leading-relaxed">
+              AI crushes basic screens (SQL, LeetCode easy)—you only interview when offers are on the table.
+            </p>
+          </div>
+
+          <div className="glass rounded-2xl p-6 card-interactive">
+            <div className="text-4xl mb-4">🎯</div>
+            <h3 className="text-xl font-bold mb-3">AI vs AI Edge</h3>
+            <p className="text-sm text-muted leading-relaxed">
+              Train on real interview Q&A datasets. Preview how your twin answers before going live.
+            </p>
+          </div>
+
+          <div className="glass rounded-2xl p-6 card-interactive">
+            <div className="text-4xl mb-4">🎭</div>
+            <h3 className="text-xl font-bold mb-3">Your Exact Clone</h3>
+            <p className="text-sm text-muted leading-relaxed">
+              Video/voice synthesis from a 2-minute selfie upload. Indistinguishable from you.
+            </p>
+          </div>
+        </section>
+
+        {/* Social Proof Section */}
+        <section className="glass rounded-2xl p-8 mb-16 text-center">
+          <div className="max-w-3xl mx-auto">
+            <div className="flex items-center justify-center gap-2 mb-4">
+              <svg className="w-5 h-5 text-warning" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+              </svg>
+              <svg className="w-5 h-5 text-warning" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+              </svg>
+              <svg className="w-5 h-5 text-warning" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+              </svg>
+              <svg className="w-5 h-5 text-warning" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+              </svg>
+              <svg className="w-5 h-5 text-warning" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+              </svg>
+            </div>
+            <blockquote className="text-2xl font-medium mb-4 italic">
+              "Saved me 15 interviews last month. Landed FAANG onsite."
+            </blockquote>
+            <p className="text-muted">— Berlin Frontend Lead</p>
+          </div>
+        </section>
+
+        {/* Tech Stack Comparison */}
+        <section className="mb-16">
+          <h2 className="text-3xl font-bold text-center mb-4">Choose Your Stack</h2>
+          <p className="text-center text-muted mb-8 max-w-2xl mx-auto">
+            Toggle between premium cloud services for ultra-realistic performance or open-source local models for privacy and customization.
+          </p>
+
+          <div className="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto">
+            {/* Cloud Stack */}
+            <div className={`glass p-6 rounded-2xl border-2 transition-all ${mode === 'CLOUD' ? 'border-primary bg-primary/5' : 'border-transparent'}`}>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-bold flex items-center gap-2">
+                  <span className="text-2xl">☁️</span> Cloud (Premium)
+                </h3>
+                {mode === 'CLOUD' && <span className="text-xs bg-primary px-2 py-1 rounded text-white uppercase font-bold tracking-wider">Active</span>}
+              </div>
+              <p className="text-sm text-muted mb-4">Ultra-realistic performance using elite cloud services.</p>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-xs px-3 py-2 rounded-lg bg-card/50">
+                  <span className="text-muted">Brain</span>
+                  <span className="font-medium text-foreground">OpenAI / Anthropic</span>
                 </div>
-                <div className="w-16 h-16 rounded-2xl bg-primary/20 flex items-center justify-center text-3xl">
-                  🎬
+                <div className="flex items-center justify-between text-xs px-3 py-2 rounded-lg bg-card/50">
+                  <span className="text-muted">Voice</span>
+                  <span className="font-medium text-foreground">ElevenLabs</span>
+                </div>
+                <div className="flex items-center justify-between text-xs px-3 py-2 rounded-lg bg-card/50">
+                  <span className="text-muted">Avatar</span>
+                  <span className="font-medium text-foreground">HeyGen Streaming</span>
                 </div>
               </div>
+              <p className="text-xs text-muted mt-4 italic">Zero subscriptions—pay per render if you scale</p>
+            </div>
 
-              <div className="flex items-center gap-2 mb-6 text-sm">
-                <span className={`w-2 h-2 rounded-full ${allReady(status) ? 'bg-success animate-pulse-slow' : 'bg-warning'}`} />
-                <span className={allReady(status) ? 'text-success' : 'text-warning'}>
-                  {allReady(status) ? 'Ready to go' : 'Complete setup first'}
-                </span>
+            {/* Local Stack */}
+            <div className={`glass p-6 rounded-2xl border-2 transition-all ${mode === 'LOCAL' ? 'border-success bg-success/5' : 'border-transparent'}`}>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-bold flex items-center gap-2">
+                  <span className="text-2xl">🏠</span> Local (Open Source)
+                </h3>
+                {mode === 'LOCAL' && <span className="text-xs bg-success px-2 py-1 rounded text-white uppercase font-bold tracking-wider">Active</span>}
               </div>
+              <p className="text-sm text-muted mb-4">Private, model-agnostic, and runs completely offline.</p>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-xs px-3 py-2 rounded-lg bg-card/50">
+                  <span className="text-muted">Brain</span>
+                  <span className="font-medium text-foreground">Model Agnostic (Ollama)</span>
+                </div>
+                <div className="flex items-center justify-between text-xs px-3 py-2 rounded-lg bg-card/50">
+                  <span className="text-muted">Voice</span>
+                  <span className="font-medium text-foreground">OpenVoice / Coqui</span>
+                </div>
+                <div className="flex items-center justify-between text-xs px-3 py-2 rounded-lg bg-card/50">
+                  <span className="text-muted">Avatar</span>
+                  <span className="font-medium text-foreground">LivePortrait (Local)</span>
+                </div>
+              </div>
+              <p className="text-xs text-muted mt-4 italic">Use any Ollama model—DeepSeek, Llama, Mistral, etc.</p>
+            </div>
+          </div>
 
-              <Link
-                href={allReady(status) ? '/live' : '#'}
-                className={`btn w-full ${allReady(status) ? 'btn-primary glow-primary' : 'btn-secondary opacity-50 cursor-not-allowed pointer-events-none'}`}
+          <p className="mt-8 text-sm text-center text-muted italic">
+            * Switch modes anytime in the header to toggle between premium fidelity and open-source privacy.
+          </p>
+        </section>
+
+        {/* Setup Status Cards - Removed for Marketing Page */}
+
+        {/* Main Actions - Removed for Marketing Page */}
+
+        {/* Quick Stats - Removed for Marketing Page */}
+
+        {/* GitHub CTA Section */}
+        <section className="glass rounded-2xl p-12 text-center border-2 border-primary/20 bg-gradient-to-br from-primary/5 to-transparent mt-12">
+          <div className="max-w-2xl mx-auto">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/20 text-primary text-sm font-bold mb-6">
+              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z" />
+              </svg>
+              Open Source & Free Forever
+            </div>
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">
+              Join the <span className="gradient-text">Community</span>
+            </h2>
+            <p className="text-lg text-muted mb-8">
+              Star the repo, fork it, contribute, or just explore the code. Built by developers, for developers.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+              <a
+                href="https://github.com/dpitcock/job-interview-avatar"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn btn-primary glow-primary flex items-center gap-2"
+              >
+                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z" />
+                </svg>
+                View on GitHub
+              </a>
+              <a
+                href="https://github.com/dpitcock/job-interview-avatar/fork"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn btn-secondary flex items-center gap-2"
               >
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.348a1.125 1.125 0 010 1.971l-11.54 6.347a1.125 1.125 0 01-1.667-.985V5.653z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
                 </svg>
-                {isLive ? 'Interview Active' : 'Start Interview'}
-              </Link>
+                Fork & Customize
+              </a>
             </div>
-
-            {/* Practice Mode */}
-            <div className="glass rounded-2xl p-8 card-interactive">
-              <div className="flex items-start justify-between mb-6">
-                <div>
-                  <h3 className="text-2xl font-bold mb-2">Practice Mode</h3>
-                  <p className="text-muted">
-                    Mock interviews with common questions to refine your responses.
-                  </p>
-                </div>
-                <div className="w-16 h-16 rounded-2xl bg-success/20 flex items-center justify-center text-3xl">
-                  🎯
-                </div>
-              </div>
-
-              <div className="grid grid-cols-3 gap-3 mb-6 text-center text-sm">
-                <div className="p-3 rounded-xl bg-card">
-                  <div className="text-xl font-bold">25</div>
-                  <div className="text-muted">Beh.</div>
-                </div>
-                <div className="p-3 rounded-xl bg-card">
-                  <div className="text-xl font-bold">15</div>
-                  <div className="text-muted">Tech.</div>
-                </div>
-                <div className="p-3 rounded-xl bg-card">
-                  <div className="text-xl font-bold">10</div>
-                  <div className="text-muted">Sit.</div>
-                </div>
-              </div>
-
-              <Link href="/practice" className="btn btn-secondary w-full">
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.5 12c0-1.232.046-2.453.138-3.662a4.006 4.006 0 013.7-3.7 48.678 48.678 0 017.324 0 4.006 4.006 0 013.7 3.7c.017.22.032.441.046.662M4.5 12l-3-3m3 3l-3 3M4.5 12h15" />
+            <div className="flex items-center justify-center gap-6 mt-8 text-sm text-muted">
+              <div className="flex items-center gap-2">
+                <svg className="w-4 h-4 text-warning" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                 </svg>
-                Start Practice
-              </Link>
-            </div>
-
-            {/* Interview Candidate (Role Reversal) */}
-            <div className="glass rounded-2xl p-8 card-interactive">
-              <div className="flex items-start justify-between mb-6">
-                <div>
-                  <h3 className="text-2xl font-bold mb-2">Interview Candidate</h3>
-                  <p className="text-muted">
-                    Role reversal: YOU are the interviewer. Test your avatar's knowledge.
-                  </p>
-                </div>
-                <div className="w-16 h-16 rounded-2xl bg-warning/20 flex items-center justify-center text-3xl">
-                  🎙️
-                </div>
+                <span>MIT License</span>
               </div>
-
-              <div className="p-4 rounded-xl bg-card mb-6 text-xs text-muted">
-                <p>Perfect for:</p>
-                <ul className="list-disc list-inside mt-2 space-y-1">
-                  <li>Reviewing your candidate's persona</li>
-                  <li>Testing RAG context accuracy</li>
-                  <li>Saving transcripts back to context</li>
-                </ul>
-              </div>
-
-              <Link href="/interview/candidate" className="btn btn-secondary w-full border-warning/30 hover:bg-warning/10">
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+              <div className="flex items-center gap-2">
+                <svg className="w-4 h-4 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8h2a2 2 0 012 2v6a2 2 0 01-2 2h-2v4l-4-4H9a1.994 1.994 0 01-1.414-.586m0 0L11 14h4a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2v4l.586-.586z" />
                 </svg>
-                Interview Candidate
-              </Link>
+                <span>TypeScript + Next.js</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <svg className="w-4 h-4 text-success" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span>macOS Ready</span>
+              </div>
             </div>
-          </section>
-        )}
-
-        {/* Quick Stats */}
-        {activeUser && (
-          <section className="glass rounded-2xl p-6">
-            <h3 className="text-lg font-semibold mb-4">Performance Metrics</h3>
-            <div className="grid md:grid-cols-4 gap-6">
-              <MetricCard label="Avg Response Time" value="2.3s" target="<4s" isGood />
-              <MetricCard label="RAG Accuracy" value="94%" target=">90%" isGood />
-              <MetricCard label="Voice Latency" value="380ms" target="<500ms" isGood />
-              <MetricCard label="Sessions Today" value="0" target="-" isGood />
-            </div>
-          </section>
-        )}
+          </div>
+        </section>
       </main>
 
       {/* Footer */}
       <footer className="max-w-7xl mx-auto px-6 py-8 text-center text-muted text-sm">
         <p>
-          InterviewAvatar — Open source AI for democratizing interviews.{' '}
+          Twinterview Agent — Open source AI for democratizing interviews.{' '}
           <a href="https://github.com/dpitcock/job-interview-avatar" className="text-primary hover:underline">
             GitHub
           </a>
@@ -362,50 +319,4 @@ export default function Dashboard() {
   );
 }
 
-function StatusCard({ title, icon, ready, detail, href }: {
-  title: string;
-  icon: string;
-  ready: boolean;
-  detail: string;
-  href: string;
-}) {
-  return (
-    <Link
-      href={href}
-      className="glass rounded-xl p-4 card-interactive flex items-center gap-4"
-    >
-      <div className="text-2xl">{icon}</div>
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2">
-          <span className="font-medium">{title}</span>
-          <span className={`w-2 h-2 rounded-full ${ready ? 'bg-success' : 'bg-warning'}`} />
-        </div>
-        <div className="text-sm text-muted truncate">{detail}</div>
-      </div>
-      <svg className="w-4 h-4 text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.25 4.5l7.5 7.5-7.5 7.5" />
-      </svg>
-    </Link>
-  );
-}
 
-function MetricCard({ label, value, target, isGood }: {
-  label: string;
-  value: string;
-  target: string;
-  isGood: boolean;
-}) {
-  return (
-    <div className="text-center">
-      <div className={`text-2xl font-bold ${isGood ? 'text-success' : 'text-warning'}`}>
-        {value}
-      </div>
-      <div className="text-sm text-muted">{label}</div>
-      <div className="text-xs text-muted/50">Target: {target}</div>
-    </div>
-  );
-}
-
-function allReady(status: SetupStatus): boolean {
-  return status.llm.ready && status.voice.ready && status.avatar.ready && status.rag.ready;
-}

@@ -17,7 +17,7 @@ export function VercelBanner() {
                 </div>
                 <div className="flex items-center gap-4">
                     <a
-                        href="https://github.com/dpitcock/job-interview-avatar"
+                        href="https://github.com/dpitcock/twinterview-agent"
                         target="_blank"
                         rel="noopener noreferrer"
                         className="text-xs font-bold bg-primary text-white px-4 py-2 rounded-full hover:glow-primary transition-all"

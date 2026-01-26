@@ -4,10 +4,12 @@ import { indexDocuments } from '@/lib/rag';
 
 export async function POST(req: NextRequest) {
     try {
-        const { sessionId, userId } = await req.json();
+        const body = await req.json();
+        const sessionId = body.sessionId;
+        const candidateId = body.candidateId || body.userId;
 
-        if (!sessionId || !userId) {
-            return NextResponse.json({ error: 'Session ID and User ID are required' }, { status: 400 });
+        if (!sessionId || !candidateId) {
+            return NextResponse.json({ error: 'Session ID and Candidate ID are required' }, { status: 400 });
         }
 
         // 1. Fetch session and its messages
@@ -37,14 +39,14 @@ export async function POST(req: NextRequest) {
 
         // 3. Save to database rag_files table
         db.prepare(
-            'INSERT INTO rag_files (user_id, filename, file_type, content) VALUES (?, ?, ?, ?)'
-        ).run(userId, filename, 'markdown', transcript);
+            'INSERT INTO rag_files (candidate_id, filename, file_type, content) VALUES (?, ?, ?, ?)'
+        ).run(candidateId, filename, 'markdown', transcript);
 
         // 4. Index to Vector Store (RAG)
         // Note: indexDocuments expects Array<{content, metadata}>
         await indexDocuments(
             [{ content: transcript, metadata: { type: 'general', title } }],
-            userId,
+            candidateId,
             filename
         );
 

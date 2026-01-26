@@ -4,7 +4,7 @@ import { getDocumentCount } from '@/lib/rag';
 
 export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
-    const userId = searchParams.get('userId') || undefined;
+    const candidateId = searchParams.get('candidateId') || searchParams.get('userId') || undefined;
 
     const { default: db } = await import('@/lib/db');
 
@@ -18,13 +18,13 @@ export async function GET(request: NextRequest) {
     let currentMode = (systemSettings.llm_mode || config.mode) as 'LOCAL' | 'CLOUD';
     let llmProvider = currentMode === 'LOCAL' ? systemSettings.llm_local_model : systemSettings.llm_cloud_model;
 
-    if (userId) {
-        const user = db.prepare('SELECT * FROM users WHERE id = ?').get(userId);
-        if (user) {
-            currentMode = user.llm_preferred_mode || currentMode;
+    if (candidateId) {
+        const candidate = db.prepare('SELECT * FROM candidates WHERE id = ?').get(candidateId);
+        if (candidate) {
+            currentMode = candidate.llm_preferred_mode || currentMode;
             llmProvider = currentMode === 'LOCAL'
-                ? (user.llm_local_model || systemSettings.llm_local_model)
-                : (user.llm_cloud_model || systemSettings.llm_cloud_model);
+                ? (candidate.llm_local_model || systemSettings.llm_local_model)
+                : (candidate.llm_cloud_model || systemSettings.llm_cloud_model);
         }
     }
 
@@ -43,16 +43,16 @@ export async function GET(request: NextRequest) {
         llmReady = !!config.llm.cloud.apiKey;
     }
 
-    // Check RAG status for specific user
+    // Check RAG status for specific candidate
     let ragCount = 0;
-    if (userId) {
-        const row = db.prepare('SELECT COUNT(*) as count FROM rag_files WHERE user_id = ?').get(userId);
+    if (candidateId) {
+        const row = db.prepare('SELECT COUNT(*) as count FROM rag_files WHERE candidate_id = ?').get(candidateId);
         ragCount = (row as any)?.count || 0;
     }
 
     return NextResponse.json({
         mode: currentMode,
-        userId: userId || null,
+        candidateId: candidateId || null,
         llm: {
             ready: llmReady,
             provider: llmProvider,

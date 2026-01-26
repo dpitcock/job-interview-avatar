@@ -2,7 +2,7 @@
 
 ## Overview
 
-This phase establishes the core project structure, configuration system, and base UI for InterviewAvatar.
+This phase establishes the core project structure, configuration system, and base UI for Twinterview Agent.
 
 ## What's Included
 

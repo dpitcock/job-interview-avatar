@@ -1,8 +1,10 @@
-# InterviewAvatar
+# Twinterview Agent
 
 An open-source AI-powered interview agent that acts as your digital clone for Zoom job interviews. Uses your voice, face, and expertise to answer questions in real-time.
 
-![InterviewAvatar Demo](docs/demo.gif)
+**🌐 [Try Live Demo](https://twinterview-agent.dpitcock.dev/)** | **📦 [GitHub Repository](https://github.com/dpitcock/job-interview-avatar)**
+
+![Twinterview Agent Demo](docs/demo.gif)
 
 ## Features
 
@@ -13,31 +15,31 @@ An open-source AI-powered interview agent that acts as your digital clone for Zo
 - 🎥 **Zoom Integration**: OBS virtual camera + audio routing
 - ⚡ **Real-time**: <5s end-to-end latency (question → video response)
 
-## 👤 User Profiles & Context (RAG)
+## 👤 Candidate Profiles & Context (RAG)
 
-The system supports multiple user profiles, each isolated with its own configuration and expert knowledge.
+The system supports multiple candidate profiles, each isolated with its own configuration and expert knowledge.
 
 ### How it works
 1.  **Identity Management**: Profiles are stored in a local SQLite database (`data/interview.db`). This includes basic info, HeyGen avatar IDs, ElevenLabs voice IDs, and LLM preferences.
 2.  **Expert Context (RAG)**: When you upload a document (Resume, Portfolio, Experience) to a specific profile:
     -   The file's **full content** is indexed into the vector store for real-time retrieval by the LLM.
-    -   A **reference record** is added to the SQLite `rag_files` table, linking the `filename` and `timestamp` to that user's ID.
+    -   A **reference record** is added to the SQLite `rag_files` table, linking the `filename` and `timestamp` to that candidate's ID.
 3.  **Persistence & Deletion**:
-    -   Deleting a user profile automatically performs a cascade delete, removing all associated RAG file metadata.
-    -   The vector store is updated to ensure only documents belonging to the active user are used during the interview.
+    -   Deleting a candidate profile automatically performs a cascade delete, removing all associated RAG file metadata.
+    -   The vector store is updated to ensure only documents belonging to the active candidate are used during the interview.
 
 ### 🔗 Deep Linking & Direct Links
-The application supports automatic user selection via URL parameters. This is useful for creating bookmarks or direct links to specific personas:
-- **Parameter**: Append `?userId=[UUID]` to any page URL.
-- **Persistence**: Loading a URL with this parameter will automatically set the active user for the entire application and save it to your local preferences.
-- **Demo Example**: `http://localhost:3000?userId=607ac96e-9333-40e8-9653-5d51846b0a8d` (links directly to Samuel Yoon in the local environment).
+The application supports automatic candidate selection via URL parameters. This is useful for creating bookmarks or direct links to specific personas:
+- **Parameter**: Append `?candidateId=[UUID]` to any page URL.
+- **Persistence**: Loading a URL with this parameter will automatically set the active candidate for the entire application and save it to your local preferences.
+- **Demo Example**: `http://localhost:3000?candidateId=6a3b2c...` (links directly to a specific profile).
 
 ### 🌐 Vercel Demo Mode
 When deployed on Vercel or in demo environments, the application operates in a **read-only mock mode**:
--   **Static Fallback**: User profiles are loaded from a static `src/data/users-fallback.json` file.
+-   **Static Fallback**: Candidate profiles are loaded from a static `src/data/candidates-fallback.json` file.
 -   **Safe Exploration**: Profile creation, editing, and RAG uploads are visually disabled.
 -   **Mock Responses**: AI responses use local mock logic to ensure the demo works without external dependencies.
--   **Pre-populated Data**: Includes demo users like "Samuel Yoon" with pre-configured RAG context.
+-   **Pre-populated Data**: Includes demo candidates like "Samuel Yoon" with pre-configured RAG context.
 -   **Fictional Context**: Specialized `.md` files (found in `docs/mock-user-context-files/`) provide deep, realistic context for the demo persona, demonstrating how the RAG system leverages specific behavioral and technical histories to ground AI responses.
 
 ---
@@ -53,8 +55,8 @@ When deployed on Vercel or in demo environments, the application operates in a *
 
 ```bash
 # Clone the repository
-git clone https://github.com/dpitcock/job-interview-avatar.git
-cd interview-avatar
+git clone https://github.com/dpitcock/twinterview-agent.git
+cd twinterview-agent
 
 # Install dependencies
 npm install
@@ -198,7 +200,7 @@ This tool is for educational and practice purposes. Always disclose the use of A
 
 - 📧 Email: your@email.com
 - 💬 Discord: [Join our community](https://discord.gg/yourlink)
-- 🐛 Issues: [GitHub Issues](https://github.com/yourusername/interview-avatar/issues)
+- 🐛 Issues: [GitHub Issues](https://github.com/dpitcock/twinterview-agent/issues)
 
 ## Acknowledgments
 

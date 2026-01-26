@@ -22,18 +22,18 @@ interface StoredDocument {
 // Default user ID for backward compatibility
 const DEFAULT_USER_ID = '__global__';
 
-// In-memory store: Map<userId, Map<docId, StoredDocument>>
-const userDocumentStores: Map<string, Map<string, StoredDocument>> = new Map();
+// In-memory store: Map<candidateId, Map<docId, StoredDocument>>
+const candidateDocumentStores: Map<string, Map<string, StoredDocument>> = new Map();
 
 /**
- * Get or create document store for a user
+ * Get or create document store for a candidate
  */
-function getUserStore(userId?: string): Map<string, StoredDocument> {
-    const uid = userId || DEFAULT_USER_ID;
-    if (!userDocumentStores.has(uid)) {
-        userDocumentStores.set(uid, new Map());
+function getCandidateStore(candidateId?: string): Map<string, StoredDocument> {
+    const cid = candidateId || DEFAULT_USER_ID;
+    if (!candidateDocumentStores.has(cid)) {
+        candidateDocumentStores.set(cid, new Map());
     }
-    return userDocumentStores.get(uid)!;
+    return candidateDocumentStores.get(cid)!;
 }
 
 // Common stop words to ignore
@@ -104,10 +104,10 @@ function calculateScore(queryTokens: string[], doc: StoredDocument): number {
 export async function addDocument(
     content: string,
     metadata: DocumentMetadata,
-    userId?: string
+    candidateId?: string
 ): Promise<string> {
     const id = `doc_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
-    const store = getUserStore(userId);
+    const store = getCandidateStore(candidateId);
 
     store.set(id, {
         id,
@@ -127,21 +127,21 @@ export async function addDocument(
  */
 export async function indexDocuments(
     documents: Array<{ content: string; metadata: DocumentMetadata }>,
-    userId?: string,
+    candidateId?: string,
     source?: string
 ): Promise<string[]> {
     const ids: string[] = [];
 
     // If source provided, clear previous documents from this source to avoid duplicates
     if (source) {
-        deleteBySource(source, userId);
+        deleteBySource(source, candidateId);
     }
 
     for (const doc of documents) {
         const id = await addDocument(
             doc.content,
             { ...doc.metadata, source: source || doc.metadata.source },
-            userId
+            candidateId
         );
         ids.push(id);
     }
@@ -158,15 +158,15 @@ export async function queryDocuments(
         topK?: number;
         type?: DocumentMetadata['type'];
         minScore?: number;
-        userId?: string;
+        candidateId?: string;
     }
 ): Promise<RAGDocument[]> {
-    const { topK = 5, type, minScore = 0.5, userId } = options || {};
-    const store = getUserStore(userId);
+    const { topK = 5, type, minScore = 0.5, candidateId } = options || {};
+    const store = getCandidateStore(candidateId);
 
     // If store is empty, try to rebuild from DB
-    if (store.size === 0 && userId && userId !== DEFAULT_USER_ID) {
-        await rebuildIndexFromDb(userId);
+    if (store.size === 0 && candidateId && candidateId !== DEFAULT_USER_ID) {
+        await rebuildIndexFromDb(candidateId);
     }
 
     const queryTokens = tokenize(query);
@@ -200,24 +200,24 @@ export async function queryDocuments(
 /**
  * Get a document by ID for a specific user
  */
-export function getDocument(id: string, userId?: string): StoredDocument | undefined {
-    const store = getUserStore(userId);
+export function getDocument(id: string, candidateId?: string): StoredDocument | undefined {
+    const store = getCandidateStore(candidateId);
     return store.get(id);
 }
 
 /**
- * Delete a document for a specific user
+ * Delete a document for a specific candidate
  */
-export function deleteDocument(id: string, userId?: string): boolean {
-    const store = getUserStore(userId);
+export function deleteDocument(id: string, candidateId?: string): boolean {
+    const store = getCandidateStore(candidateId);
     return store.delete(id);
 }
 
 /**
  * Delete all documents associated with a source (filename)
  */
-export function deleteBySource(source: string, userId?: string): number {
-    const store = getUserStore(userId);
+export function deleteBySource(source: string, candidateId?: string): number {
+    const store = getCandidateStore(candidateId);
     let deletedCount = 0;
 
     for (const [id, doc] of store.entries()) {
@@ -291,32 +291,32 @@ export function parseBehavioralAnswers(
 /**
  * Get document count for a specific user
  */
-export function getDocumentCount(userId?: string): number {
-    const store = getUserStore(userId);
+export function getDocumentCount(candidateId?: string): number {
+    const store = getCandidateStore(candidateId);
     return store.size;
 }
 
 /**
- * Get all documents for a specific user
+ * Get all documents for a specific candidate
  */
-export function getAllDocuments(userId?: string): StoredDocument[] {
-    const store = getUserStore(userId);
+export function getAllDocuments(candidateId?: string): StoredDocument[] {
+    const store = getCandidateStore(candidateId);
     return Array.from(store.values());
 }
 
 /**
- * Clear all documents for a specific user
+ * Clear all documents for a specific candidate
  */
-export function clearDocuments(userId?: string): void {
-    const store = getUserStore(userId);
+export function clearDocuments(candidateId?: string): void {
+    const store = getCandidateStore(candidateId);
     store.clear();
 }
 
 /**
- * Search by metadata for a specific user
+ * Search by metadata for a specific candidate
  */
-export function searchByType(type: DocumentMetadata['type'], userId?: string): RAGDocument[] {
-    const store = getUserStore(userId);
+export function searchByType(type: DocumentMetadata['type'], candidateId?: string): RAGDocument[] {
+    const store = getCandidateStore(candidateId);
     return Array.from(store.values())
         .filter(doc => doc.metadata.type === type)
         .map(doc => ({
@@ -327,24 +327,24 @@ export function searchByType(type: DocumentMetadata['type'], userId?: string): R
 }
 
 /**
- * Rebuild the in-memory index from the database for a specific user
+ * Rebuild the in-memory index from the database for a specific candidate
  */
-export async function rebuildIndexFromDb(userId: string): Promise<void> {
+export async function rebuildIndexFromDb(candidateId: string): Promise<void> {
     const { default: db } = await import('@/lib/db');
 
-    // Get all files for this user from DB
-    const files = db.prepare('SELECT filename, content, file_type FROM rag_files WHERE user_id = ?').all(userId) || [];
+    // Get all files for this candidate from DB
+    const files = db.prepare('SELECT filename, content, file_type FROM rag_files WHERE candidate_id = ?').all(candidateId) || [];
 
-    // Clear current in-memory store for this user to avoid duplicates
-    clearDocuments(userId);
+    // Clear current in-memory store for this candidate to avoid duplicates
+    clearDocuments(candidateId);
 
     for (const file of files) {
         if (!file.content) continue;
 
         const documents = parseBehavioralAnswers(file.content);
-        await indexDocuments(documents, userId, file.filename);
+        await indexDocuments(documents, candidateId, file.filename);
     }
 }
 
-// Export for backward compatibility (uses default user)
-export { userDocumentStores as documentStore };
+// Export for backward compatibility (uses default candidate)
+export { candidateDocumentStores as documentStore };

@@ -16,7 +16,7 @@ Or download from: https://existential.audio/blackhole/
 
 1. Open **Audio MIDI Setup** (Cmd+Space → "Audio MIDI Setup")
 2. Click **+** (bottom left) → **Create Multi-Output Device**
-3. Name it "InterviewAvatar Output"
+3. Name it "Twinterview Agent Output"
 4. Check both:
    - ✅ **BlackHole 2ch**
    - ✅ **Your Speakers/Headphones** (so you can hear)
@@ -25,7 +25,7 @@ Or download from: https://existential.audio/blackhole/
 ### 3. Create Aggregate Device (for Input)
 
 1. In **Audio MIDI Setup**, click **+** → **Create Aggregate Device**
-2. Name it "InterviewAvatar Input"
+2. Name it "Twinterview Agent Input"
 3. Check both:
    - ✅ **BlackHole 2ch**
    - ✅ **Your Microphone** (if you want to speak too)
@@ -34,8 +34,8 @@ Or download from: https://existential.audio/blackhole/
 ### 4. Configure System Audio
 
 1. Go to **System Settings** → **Sound**
-2. **Output**: Select "InterviewAvatar Output"
-3. **Input**: Select "InterviewAvatar Input" (or keep your mic)
+2. **Output**: Select "Twinterview Agent Output"
+3. **Input**: Select "Twinterview Agent Input" (or keep your mic)
 
 ### 5. Configure Zoom
 
@@ -47,7 +47,7 @@ Or download from: https://existential.audio/blackhole/
 
 ### 6. Test the Setup
 
-1. Start InterviewAvatar at `http://localhost:3001/live`
+1. Start Twinterview Agent at `http://localhost:3001/live`
 2. Generate a response with voice
 3. Join a Zoom meeting
 4. The AI voice should be transmitted to Zoom participants
@@ -74,7 +74,7 @@ Download from: https://vb-audio.com/Cable/
 ## Troubleshooting
 
 ### "I can't hear the AI voice"
-- Ensure "InterviewAvatar Output" includes your speakers
+- Ensure "Twinterview Agent Output" includes your speakers
 - Check system volume is not muted
 - Verify browser audio is playing (check browser tab icon)
 

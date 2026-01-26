@@ -1,6 +1,6 @@
-# 📚 InterviewAvatar Documentation
+# 📚 Twinterview Agent Documentation
 
-Welcome to the InterviewAvatar documentation. This directory contains detailed guides for each phase of the project.
+Welcome to the Twinterview Agent documentation. This directory contains detailed guides for each phase of the project.
 
 ## Documentation Structure
 
