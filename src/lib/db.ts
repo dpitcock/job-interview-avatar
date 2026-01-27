@@ -55,6 +55,63 @@ if (IS_VERCEL) {
         db = new Database(DB_PATH);
         db.pragma('foreign_keys = ON');
 
+        // Migration logic for existing databases (Run BEFORE CREATE TABLE)
+        try {
+            const tableInfo = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='users'").get();
+            if (tableInfo) {
+                console.log('Migrating users table to candidates...');
+                db.exec(`
+                    ALTER TABLE users RENAME TO candidates;
+                    ALTER TABLE rag_files RENAME COLUMN user_id TO candidate_id;
+                    ALTER TABLE interview_sessions RENAME COLUMN user_id TO candidate_id;
+                `);
+            }
+        } catch (e) {
+            console.error('Migration failed or already completed:', e);
+        }
+
+        // Schema Fix: Ensure Foreign Keys point to candidates, not users
+        try {
+            const schema = db.prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name='interview_sessions'").get();
+            if (schema && schema.sql.includes('REFERENCES users')) {
+                console.log('Fixing interview_sessions foreign key...');
+                db.exec(`
+                    CREATE TABLE interview_sessions_new (
+                        id TEXT PRIMARY KEY,
+                        candidate_id TEXT NOT NULL,
+                        title TEXT,
+                        status TEXT DEFAULT 'active',
+                        created_at TEXT DEFAULT (datetime('now')),
+                        FOREIGN KEY (candidate_id) REFERENCES candidates (id) ON DELETE CASCADE
+                    );
+                    INSERT INTO interview_sessions_new SELECT * FROM interview_sessions;
+                    DROP TABLE interview_sessions;
+                    ALTER TABLE interview_sessions_new RENAME TO interview_sessions;
+                `);
+            }
+
+            const ragSchema = db.prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name='rag_files'").get();
+            if (ragSchema && ragSchema.sql.includes('REFERENCES users')) {
+                console.log('Fixing rag_files foreign key...');
+                db.exec(`
+                    CREATE TABLE rag_files_new (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        candidate_id TEXT NOT NULL,
+                        filename TEXT NOT NULL,
+                        file_type TEXT,
+                        content TEXT,
+                        created_at TEXT DEFAULT (datetime('now')),
+                        FOREIGN KEY (candidate_id) REFERENCES candidates (id) ON DELETE CASCADE
+                    );
+                    INSERT INTO rag_files_new SELECT * FROM rag_files;
+                    DROP TABLE rag_files;
+                    ALTER TABLE rag_files_new RENAME TO rag_files;
+                `);
+            }
+        } catch (e) {
+            console.error('Schema fix failed:', e);
+        }
+
         db.exec(`
             CREATE TABLE IF NOT EXISTS candidates (
                 id TEXT PRIMARY KEY,
@@ -77,10 +134,6 @@ if (IS_VERCEL) {
                 created_at TEXT DEFAULT (datetime('now')),
                 updated_at TEXT DEFAULT (datetime('now'))
             );
-
-            -- Migration: Rename 'users' to 'candidates' if it exists
-            -- sqlite doesn't HAVE a simple 'IF EXISTS' for table rename, so we check
-            -- PRAGMA table_info handles this by being idempotent or we could use app_user_version
 
             CREATE TABLE IF NOT EXISTS system_settings (
                 key TEXT PRIMARY KEY,
@@ -109,24 +162,7 @@ if (IS_VERCEL) {
                 created_at TEXT DEFAULT (datetime('now')),
                 FOREIGN KEY (candidate_id) REFERENCES candidates (id) ON DELETE CASCADE
             );
-        `);
 
-        // Migration logic for existing databases
-        try {
-            const tableInfo = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='users'").get();
-            if (tableInfo) {
-                console.log('Migrating users table to candidates...');
-                db.exec(`
-                    ALTER TABLE users RENAME TO candidates;
-                    ALTER TABLE rag_files RENAME COLUMN user_id TO candidate_id;
-                    ALTER TABLE interview_sessions RENAME COLUMN user_id TO candidate_id;
-                `);
-            }
-        } catch (e) {
-            // Probably already migrated
-        }
-
-        db.exec(`
             CREATE TABLE IF NOT EXISTS interview_messages (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 session_id TEXT NOT NULL,

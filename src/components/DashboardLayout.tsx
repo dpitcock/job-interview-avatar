@@ -19,8 +19,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         { href: '/dashboard', label: 'Dashboard Home', icon: '🏠' },
         { href: '/dashboard/start', label: 'Start Interview', icon: '🎬' },
         { href: '/dashboard/practice', label: 'Practice Mode', icon: '🎯' },
-        { href: '/dashboard/mock', label: 'Mock Interviews', icon: '👑' },
-        { href: '/dashboard/chatbot', label: 'Interview Chatbot', icon: '💬' },
+        { href: '/dashboard/chat-interview', label: 'Chat Interview', icon: '💬' },
         { href: '/dashboard/context', label: 'Context', icon: '📚' },
         { href: '/dashboard/settings', label: 'Settings', icon: '⚙️' },
     ];
@@ -57,8 +56,8 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                                 href={item.href}
                                 onClick={() => setIsSidenavOpen(false)}
                                 className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${isActive
-                                        ? 'bg-primary/10 text-primary font-medium'
-                                        : 'text-muted hover:bg-white/5 hover:text-foreground'
+                                    ? 'bg-primary/10 text-primary font-medium'
+                                    : 'text-muted hover:bg-white/5 hover:text-foreground'
                                     }`}
                             >
                                 <span className="text-xl">{item.icon}</span>
